@@ -171,8 +171,12 @@ const submitForm = async () => {
           <div class="space-y-2">
             <label class="text-xs font-mono text-cyan-500/70">RUNNER</label>
 
-            <input v-model="form.runner" type="text" placeholder="Player Name" required
+            <input v-model="form.runner" type="text" placeholder="Name A, Name B" required
               class="w-full bg-black/50 border border-white/20 text-white p-3 font-mono focus:border-cyan-500 focus:outline-none transition-colors" />
+
+            <p class="text-[10px] text-gray-500 font-mono">
+              For multiple runners, separate with comma (,) or (&).
+            </p>
           </div>
 
           <div class="space-y-2">

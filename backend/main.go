@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"strings"
 )
 
 // --- Models ---
@@ -124,6 +125,8 @@ func getSummary(c *gin.Context) {
 
 func getLeaderboard(c *gin.Context) {
 	var players []Player
+
+	// 直接撈取 Player 表，並按分數排序
 	db.Order("score_contribution desc").Find(&players)
 	c.JSON(http.StatusOK, players)
 }
@@ -209,36 +212,45 @@ func createRecord(c *gin.Context) {
 	}
 }
 
-// --- 輔助函式：更新跑者積分 ---
-func updatePlayerStats(runnerName string, score int) {
-	if runnerName == "" || score <= 0 {
+// --- 輔助函式：更新跑者積分 (支援多人，用逗號或 & 分隔) ---
+func updatePlayerStats(runnerNamesRaw string, score int) {
+	if runnerNamesRaw == "" || score <= 0 {
 		return
 	}
 
-	var player Player
-	// 1. 嘗試尋找該跑者
-	result := db.Where("name = ?", runnerName).First(&player)
+	// 1. 處理分隔符號：支援 "A, B" 或 "A & B" 或 "A,B"
+	// 先把 '&' 替換成 ','，再統一用 ',' 切割
+	normalized := strings.ReplaceAll(runnerNamesRaw, "&", ",")
+	names := strings.Split(normalized, ",")
 
-	if result.Error == nil {
-		// (A) 跑者已存在 -> 更新分數與過關數
-		player.ScoreContribution += float64(score)
-		player.MapCount += 1
+	for _, name := range names {
+		// 去除前後空白 (例如 " PlayerB" 變成 "PlayerB")
+		runnerName := strings.TrimSpace(name)
 
-		// 重新計算貢獻率 (個人分 / 全服總分)
-		// 這裡為了效能，我們可以簡單估算，或者重新撈一次全服總分
-		// 簡單做法：直接存回去，貢獻率留給前端算或下次全量更新時算
-		db.Save(&player)
-
-	} else {
-		// (B) 跑者不存在 (新跑者) -> 建立新跑者
-		newPlayer := Player{
-			Name:              runnerName,
-			Role:              "Agent", // 預設角色
-			ScoreContribution: float64(score),
-			MapCount:          1,
-			ContributionRate:  0, // 暫時為 0
+		if runnerName == "" {
+			continue
 		}
-		db.Create(&newPlayer)
+
+		// --- 以下是原本的單人更新邏輯，現在包在迴圈裡對每個人執行 ---
+		var player Player
+		result := db.Where("name = ?", runnerName).First(&player)
+
+		if result.Error == nil {
+			// (A) 跑者已存在 -> 更新
+			player.ScoreContribution += float64(score)
+			player.MapCount += 1
+			db.Save(&player)
+		} else {
+			// (B) 跑者不存在 -> 建立
+			newPlayer := Player{
+				Name:              runnerName,
+				Role:              "Agent",
+				ScoreContribution: float64(score),
+				MapCount:          1,
+				ContributionRate:  0,
+			}
+			db.Create(&newPlayer)
+		}
 	}
 }
 
