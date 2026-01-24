@@ -109,6 +109,9 @@ func main() {
 
 	seedData()
 
+	// ★★★ 新增：更新全服總覽 ★★★
+	updateGlobalSummary()
+
 	r.Run(":8080")
 }
 
@@ -146,7 +149,6 @@ func getGrowth(c *gin.Context) {
 
 	c.JSON(http.StatusOK, growth)
 }
-
 func createRecord(c *gin.Context) {
 	var newRecord MapRecord
 
@@ -156,16 +158,88 @@ func createRecord(c *gin.Context) {
 		return
 	}
 
-	// 2. 寫入資料庫
-	// 注意：這裡會觸發我們之前寫的 BeforeSave Hook
-	// 只要 Runner 有填且 Score > 0，Status 就會自動設為 2 (已完成)
-	if err := db.Create(&newRecord).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create record"})
+	// 2. 檢查地圖是否已存在 (避免重複新增)
+	// 邏輯：先找找看有沒有同名且同難度且未完成的地圖
+	var existingRecord MapRecord
+	// 注意：這裡假設 Status != 2 代表未完成/進行中
+	result := db.Where("map_name = ? AND difficulty = ? AND status != 2", newRecord.MapName, newRecord.Difficulty).First(&existingRecord)
+
+	if result.Error == nil {
+
+		// --- A. 更新現有紀錄 (Update) ---
+
+		// 更新欄位
+		existingRecord.Runner = newRecord.Runner
+
+		existingRecord.Score = newRecord.Score // 這是玩家獲得的分數
+		existingRecord.Note = newRecord.Note
+
+		// 儲存 (會觸發 BeforeSave 自動變更 Status 為 2)
+		if err := db.Save(&existingRecord).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update record"})
+			return
+		}
+
+		// ★★★ 關鍵新增：更新跑者積分 ★★★
+		updatePlayerStats(existingRecord.Runner, existingRecord.Score)
+
+		// ★★★ 新增：更新全服總覽 ★★★
+		updateGlobalSummary()
+
+		c.JSON(http.StatusOK, existingRecord)
+
+	} else {
+		// --- B. 新增全新紀錄 (Create) ---
+
+		if err := db.Create(&newRecord).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create record"})
+			return
+		}
+
+		// ★★★ 關鍵新增：更新跑者積分 ★★★
+		// 只有當真的完成了 (Status == 2) 才加分
+		if newRecord.Status == 2 {
+			updatePlayerStats(newRecord.Runner, newRecord.Score)
+		}
+
+		// ★★★ 新增：更新全服總覽 ★★★
+		updateGlobalSummary()
+
+		c.JSON(http.StatusCreated, newRecord)
+	}
+}
+
+// --- 輔助函式：更新跑者積分 ---
+func updatePlayerStats(runnerName string, score int) {
+	if runnerName == "" || score <= 0 {
 		return
 	}
 
-	c.JSON(http.StatusCreated, newRecord)
+	var player Player
+	// 1. 嘗試尋找該跑者
+	result := db.Where("name = ?", runnerName).First(&player)
 
+	if result.Error == nil {
+		// (A) 跑者已存在 -> 更新分數與過關數
+		player.ScoreContribution += float64(score)
+		player.MapCount += 1
+
+		// 重新計算貢獻率 (個人分 / 全服總分)
+		// 這裡為了效能，我們可以簡單估算，或者重新撈一次全服總分
+		// 簡單做法：直接存回去，貢獻率留給前端算或下次全量更新時算
+		db.Save(&player)
+
+	} else {
+		// (B) 跑者不存在 (新跑者) -> 建立新跑者
+		newPlayer := Player{
+			Name:              runnerName,
+			Role:              "Agent", // 預設角色
+			ScoreContribution: float64(score),
+			MapCount:          1,
+			ContributionRate:  0, // 暫時為 0
+		}
+		db.Create(&newPlayer)
+	}
 }
 
 // 取得下拉選單用的地圖列表
@@ -181,6 +255,38 @@ func getMapOptions(c *gin.Context) {
 		Find(&maps)
 
 	c.JSON(http.StatusOK, maps)
+}
+
+// --- 輔助函式：更新全服總覽數據 ---
+func updateGlobalSummary() {
+	var totalScore int64
+	var completedCount int64
+
+	// 1. 計算所有「已完成 (Status=2)」地圖的分數總和 (使用 Points 欄位)
+	// COALESCE 確保如果沒有資料時回傳 0 而不是 null
+	db.Model(&MapRecord{}).Where("status = 2").Select("COALESCE(SUM(points), 0)").Scan(&totalScore)
+
+	// 2. 計算已完成的地圖數量
+	db.Model(&MapRecord{}).Where("status = 2").Count(&completedCount)
+
+	// 3. 更新 Summary 表
+	var summary Summary
+	// 嘗試抓取最後一筆 Summary (通常只有一筆)
+	if err := db.Last(&summary).Error; err != nil {
+		// 如果還沒有 Summary，就建立一筆新的
+		summary = Summary{
+			TargetScore: 32450, // 您的目標分數
+		}
+		db.Create(&summary)
+	}
+
+	// 更新數值
+	summary.CurrentScore = int(totalScore)
+	summary.CompletedMaps = int(completedCount)
+	summary.LastUpdate = time.Now()
+
+	// 寫回資料庫
+	db.Save(&summary)
 }
 
 // --- Seed Data ---

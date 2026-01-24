@@ -1,7 +1,7 @@
 // src/constants/categories.js
 export const CATEGORIES = [
-  'All', 
-  'Novice', 'Moderate', 'Brutal', 'Insane', 
-  'Dummy', 'Solo', 'Race', 'Oldschool', 
-  'DDMax.Easy', 'DDMax.Next', 'DDMax.Pro', 'DDMax.Nut'
+  'All',
+  'NOVICE', 'MODERATE', 'BRUTAL', 'INSANE',
+  'DUMMY', 'SOLO', 'RACE', 'OLDSCHOOL',
+  'DDMAX.EASY', 'DDMAX.NEXT', 'DDMAX.PRO', 'DDMAX.NUT'
 ];
