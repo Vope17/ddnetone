@@ -1,19 +1,39 @@
 import psycopg2
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 取得目前檔案的父目錄的父目錄 (假設腳本在根目錄的子資料夾內)
+# 或者直接使用 Path.cwd() 取得目前執行指令的工作目錄
+env_path = Path(__file__).resolve().parent.parent.parent / '.env'
+
+# 讀取指定的 .env 路徑
+load_dotenv(dotenv_path=env_path)
+
+try:
+    host = os.environ['DB_HOST']
+    user = os.environ['DB_USER']
+    password = os.environ['DB_PASSWORD']
+    dbname = os.environ['DB_NAME']
+    port = os.environ['DB_PORT']
+    # ... 其餘變數
+    print(f"成功從 {env_path} 讀取設定")
+except KeyError as e:
+    print(f"找不到 DB 環境變數: {e}")
 
 # ==========================================
 # 1. 資料庫連線設定
 # ==========================================
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "postgres",
-    "password": "123456",  # ★ 請修改為您的密碼
-    "dbname": "ddnetone",    # 資料庫名稱
-    "port": "5432"
+    "host": host,
+    "user": user,
+    "password": password,  # ★ 請修改為您的密碼
+    "dbname": dbname,    # 資料庫名稱
+    "port": port
 }
 
-INPUT_FILE = './ddmax_nut_maps.txt'
-TARGET_DIFFICULTY = 'DDMAX.NUT' # 統一難度
+INPUT_FILE = './insane_maps.txt'
+TARGET_DIFFICULTY = 'INSANE' # 統一難度
 
 def calculate_points(star):
     """
@@ -21,7 +41,7 @@ def calculate_points(star):
     """
     try:
         s = int(star)
-        return 0 + (s * 4)
+        return 30 + (s * 4)
     except:
         return 0
 

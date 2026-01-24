@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -71,8 +73,19 @@ var db *gorm.DB
 
 func main() {
 
-	// 請確認密碼與 DB 名稱
-	dsn := "host=localhost user=postgres password=123456 dbname=ddnetone port=5432 sslmode=disable"
+	dbHost := os.Getenv("DB_HOST")
+
+	dbUser := os.Getenv("DB_USER")
+
+	dbPassword := os.Getenv("DB_PASSWORD")
+
+	dbName := os.Getenv("DB_NAME")
+
+	dbPort := os.Getenv("DB_PORT")
+
+	// 組合 DSN
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		dbHost, dbUser, dbPassword, dbName, dbPort)
 
 	var err error
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -83,12 +96,13 @@ func main() {
 	db.AutoMigrate(&Summary{}, &Player{}, &MapRecord{}, &GrowthData{})
 
 	r := gin.Default()
-	// r.Static("/assets", "./dist/assets")
-	// r.LoadHTMLGlob("dist/*.html")
 
-	// r.GET("/", func(c *gin.Context) {
-	// 	c.HTML(http.StatusOK, "index.html", nil)
-	// })
+	r.Static("/assets", "./dist/assets")
+	r.LoadHTMLGlob("dist/*.html")
+
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
 
 	r.Use(cors.New(cors.Config{
 		// AllowAllOrigins: true,

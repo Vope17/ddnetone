@@ -38,7 +38,7 @@ const fetchMapOptions = async () => {
   try {
     // 呼叫剛剛寫的 Go API
 
-    const res = await axios.get(`http://localhost:8080/api/map-options?difficulty=${form.value.difficulty}`);
+    const res = await axios.get(`/api/map-options?difficulty=${form.value.difficulty}`);
     mapOptions.value = res.data;
 
     // 切換難度時，清空當前選擇
@@ -86,7 +86,7 @@ const submitForm = async () => {
   status.value = 'submitting';
 
   try {
-    await axios.post('http://localhost:8080/api/records', form.value);
+    await axios.post('/api/records', form.value);
 
     status.value = 'success';
     message.value = 'UPLOAD COMPLETE';

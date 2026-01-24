@@ -36,14 +36,14 @@ export function useGameData() {
 
     try {
       const [sumRes, playRes, mapRes, growthRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/summary`),
-        axios.get(`${API_BASE}/api/leaderboard`),
-        axios.get(`${API_BASE}/api/maps`),
-        axios.get(`${API_BASE}/api/growth`)
-        //  axios.get(`/api/summary`),
-        //  axios.get(`/api/leaderboard`),
-        //  axios.get(`/api/maps`),
-        //  axios.get(`/api/growth`)
+        // axios.get(`${API_BASE}/api/summary`),
+        // axios.get(`${API_BASE}/api/leaderboard`),
+        // axios.get(`${API_BASE}/api/maps`),
+        // axios.get(`${API_BASE}/api/growth`)
+        axios.get(`/api/summary`),
+        axios.get(`/api/leaderboard`),
+        axios.get(`/api/maps`),
+        axios.get(`/api/growth`)
       ]);
 
       summary.value = sumRes.data;
