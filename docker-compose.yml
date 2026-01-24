@@ -6,16 +6,9 @@ services:
     container_name: ddnet-app
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
-      # ★ 重點 1：將 Host 指向特殊域名 host.docker.internal
-      # 這個域名代表「宿主機（您的電腦）」
-      - DB_HOST=host.docker.internal
-      
-      # ★ 重點 2：這裡要填您「本機電腦」PostgreSQL 的帳號密碼
-      - DB_USER=postgres
-      - DB_PASSWORD=123456  # 請確認這跟您電腦上的密碼一樣
-      - DB_NAME=ddnetone
-      - DB_PORT=5432
       - GIN_MODE=release
     
     # ★ 重點 3：讓 Linux 也能解析 host.docker.internal
