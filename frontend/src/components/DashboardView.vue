@@ -49,8 +49,8 @@ const chartOptions = {
 </script>
 
 <template>
-  <div class="flex flex-col h-full gap-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-shrink-0">
+  <div class="flex flex-col h-full w-full gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 flex-shrink-0">
       <div class="bg-gradient-to-br from-gray-900 to-black border border-white/10 p-5 relative overflow-hidden group">
         <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
           <SparklesIcon class="w-16 h-16 text-cyan-500" />
@@ -104,11 +104,11 @@ const chartOptions = {
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 overflow-y-auto lg:overflow-visible">
       <div class="lg:col-span-3 bg-[#0a0a0a] border border-white/10 relative flex flex-col">
         <div class="flex items-center justify-between p-4 border-b border-white/5 bg-white/[0.02]">
           <h3 class="font-mono text-sm text-cyan-400 flex items-center gap-2">
-            <SignalIcon class="w-4 h-4" /> PERFORMANCE_GROWTH
+            <SignalIcon class="w-4 h-4" /> POINTS_GROWTH
           </h3>
           <div class="flex gap-2">
             <span class="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
@@ -142,7 +142,7 @@ const chartOptions = {
               </div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-sm text-gray-200 truncate group-hover:text-yellow-100 transition">{{ p.name
-                  }}</div>
+                }}</div>
                 <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
                   <span class="uppercase tracking-wider text-gray-600">{{ p.role }}</span>
                 </div>

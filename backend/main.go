@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"strings"
@@ -34,28 +35,44 @@ type Player struct {
 }
 
 type MapRecord struct {
-	ID         uint   `gorm:"primaryKey" json:"id"`
-	Difficulty string `json:"difficulty"`
-	MapName    string `json:"map_name"`
-	Runner     string `json:"runner"`
-	Score      int    `json:"score"`
-	Points     int    `json:"points"`
-	Note       string `json:"note"`
-	Status     int    `json:"status"` // 0:未完成, 1:進行中, 2:已完成
+	ID         uint       `gorm:"primaryKey" json:"id"`
+	Difficulty string     `json:"difficulty"`
+	MapName    string     `json:"map_name"`
+	Runner     string     `json:"runner"`
+	Score      int        `json:"score"`
+	Points     int        `json:"points"`
+	Stars      int        `json:"stars"` // ★ 新增：星星數 (0-5)
+	Note       string     `json:"note"`
+	Status     int        `json:"status"` // 0:未完成, 1:進行中, 2:已完成
+	FinishTime *time.Time `gorm:"column:finish_time" json:"finish_time"`
 }
 
-// ★★★ 這裡加入了自動判斷邏輯 ★★★
+// --- Models ---
+type Message struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	User      string    `json:"user"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// 自動判斷邏輯 & 自動填寫完成時間
 func (m *MapRecord) BeforeSave(tx *gorm.DB) error {
 	if m.Runner == "" || m.Runner == "-" || m.Runner == "nan" {
-		m.Status = 0 // Incomplete
+		m.Status = 0
 	} else if m.Score > 0 {
-		m.Status = 2 // Completed
+		m.Status = 2
 	} else {
-		m.Status = 1 // In Progress
+		m.Status = 1
 	}
 
 	if m.Status == 2 && m.Score == 0 && m.Points > 0 {
 		m.Score = m.Points
+	}
+
+	// ★ 新增：如果狀態是已完成，且還沒有記錄時間，則自動填入現在時間
+	if m.Status == 2 && m.FinishTime == nil {
+		now := time.Now()
+		m.FinishTime = &now
 	}
 
 	return nil
@@ -73,27 +90,29 @@ var db *gorm.DB
 
 func main() {
 
+	var err error
+	err = godotenv.Load("./.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	dbHost := os.Getenv("DB_HOST")
-
 	dbUser := os.Getenv("DB_USER")
-
 	dbPassword := os.Getenv("DB_PASSWORD")
-
 	dbName := os.Getenv("DB_NAME")
-
 	dbPort := os.Getenv("DB_PORT")
+	dbTimeZone := os.Getenv("DB_TIMEZONE")
 
 	// 組合 DSN
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		dbHost, dbUser, dbPassword, dbName, dbPort)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=%s",
+		dbHost, dbUser, dbPassword, dbName, dbPort, dbTimeZone)
 
-	var err error
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	db.AutoMigrate(&Summary{}, &Player{}, &MapRecord{}, &GrowthData{})
+	db.AutoMigrate(&Summary{}, &Player{}, &MapRecord{}, &GrowthData{}, &Message{})
 
 	r := gin.Default()
 
@@ -120,11 +139,14 @@ func main() {
 		api.GET("/growth", getGrowth)
 		api.POST("/records", createRecord)
 		api.GET("/map-options", getMapOptions)
+
+		api.GET("/messages", getMessages)
+		api.POST("/messages", createMessage)
 	}
 
-	seedData()
+	// seedData()
 
-	// ★★★ 新增：更新全服總覽 ★★★
+	// 新增：更新全服總覽
 	updateGlobalSummary()
 
 	r.Run(":8080")
@@ -132,6 +154,7 @@ func main() {
 
 // --- Handlers (保持不變) ---
 func getSummary(c *gin.Context) {
+	updateGlobalSummary()
 	var summary Summary
 	db.Last(&summary)
 	c.JSON(http.StatusOK, summary)
@@ -162,10 +185,17 @@ func getMaps(c *gin.Context) {
 func getGrowth(c *gin.Context) {
 	var growth []GrowthData
 
-	db.Order("hours asc").Find(&growth)
+	// 1. 計算 7 天前的時間點，並轉為 ISO 8601 字串格式
+	// 這樣才能跟資料庫裡的字串欄位做比較
+	sevenDaysAgo := time.Now().AddDate(0, 0, -7).Format(time.RFC3339)
+
+	// 2. 加入 Where 條件：timestamp >= 7天前
+	// 同時依照 id 或 timestamp 排序確保線條順序正確
+	db.Where("timestamp >= ?", sevenDaysAgo).Order("id asc").Find(&growth)
 
 	c.JSON(http.StatusOK, growth)
 }
+
 func createRecord(c *gin.Context) {
 	var newRecord MapRecord
 
@@ -174,6 +204,8 @@ func createRecord(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	now := time.Now()
 
 	// 2. 檢查地圖是否已存在 (避免重複新增)
 	// 邏輯：先找找看有沒有同名且同難度且未完成的地圖
@@ -190,6 +222,7 @@ func createRecord(c *gin.Context) {
 
 		existingRecord.Score = newRecord.Score // 這是玩家獲得的分數
 		existingRecord.Note = newRecord.Note
+		existingRecord.FinishTime = &now
 
 		// 儲存 (會觸發 BeforeSave 自動變更 Status 為 2)
 		if err := db.Save(&existingRecord).Error; err != nil {
@@ -217,6 +250,10 @@ func createRecord(c *gin.Context) {
 		// 只有當真的完成了 (Status == 2) 才加分
 		if newRecord.Status == 2 {
 			updatePlayerStats(newRecord.Runner, newRecord.Score)
+		}
+
+		if newRecord.Score > 0 || newRecord.Status == 2 {
+			newRecord.FinishTime = &now
 		}
 
 		// ★★★ 新增：更新全服總覽 ★★★
@@ -313,6 +350,69 @@ func updateGlobalSummary() {
 
 	// 寫回資料庫
 	db.Save(&summary)
+
+	recordGrowthSnapshot(int(totalScore), int(completedCount))
+}
+
+// ★ 新增的輔助函式：寫入成長紀錄
+func recordGrowthSnapshot(score int, maps int) {
+	// 1. 找出第一筆完成紀錄的時間 (計算 Hours 用)
+	var firstRecord MapRecord
+	var startTime time.Time
+
+	err := db.Where("status = 2 AND finish_time IS NOT NULL").Order("finish_time asc").First(&firstRecord).Error
+	if err == nil && firstRecord.FinishTime != nil {
+		startTime = *firstRecord.FinishTime
+	} else {
+		startTime = time.Now()
+	}
+
+	hoursSinceStart := time.Since(startTime).Hours()
+	if hoursSinceStart < 0 {
+		hoursSinceStart = 0
+	}
+
+	// ★★★ 新增：檢查上一筆資料，避免重複記錄 ★★★
+	var lastGrowth GrowthData
+	// 找出最新的一筆成長紀錄
+	if err := db.Order("id desc").First(&lastGrowth).Error; err == nil {
+		// 如果「分數」和「地圖數」都沒變，就直接退出，不存入資料庫
+		if lastGrowth.Points == score && lastGrowth.Maps == maps {
+			return
+		}
+	}
+
+	// 3. 寫入 GrowthData (只有數值改變時才會執行到這)
+	newGrowth := GrowthData{
+		Hours:     hoursSinceStart,
+		Points:    score,
+		Maps:      maps,
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	db.Create(&newGrowth)
+}
+
+// --- Handlers ---
+func getMessages(c *gin.Context) {
+	var messages []Message
+	// 依時間降冪排列，讓最新的留言在上面
+	db.Order("created_at desc").Find(&messages)
+	c.JSON(http.StatusOK, messages)
+}
+
+func createMessage(c *gin.Context) {
+	var msg Message
+	if err := c.ShouldBindJSON(&msg); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	msg.CreatedAt = time.Now()
+	if err := db.Create(&msg).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to post message"})
+		return
+	}
+	c.JSON(http.StatusCreated, msg)
 }
 
 // --- Seed Data ---

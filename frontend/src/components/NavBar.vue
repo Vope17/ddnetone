@@ -1,8 +1,9 @@
 <script setup>
 import { ref } from 'vue';
 import {
-  Bars3Icon, XMarkIcon, ChartBarIcon, MapIcon, SparklesIcon
+  Bars3Icon, XMarkIcon, ChartBarIcon, MapIcon, SparklesIcon, ChatBubbleLeftRightIcon
 } from '@heroicons/vue/24/outline';
+import ddnetIcon from '../assets/ddnet.ico';
 
 const props = defineProps({
   activeView: String
@@ -20,15 +21,16 @@ const switchView = (view) => {
 
 
 <template>
-  <nav class="relative w-full z-50 top-0 h-16 border-b border-white/10 bg-[#050505]/80 backdrop-blur-md">
+  <nav class="relative w-full z-50 top-0 h-16 border-b border-white/10 bg-[#050505]/80 ">
     <div class="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between">
 
 
       <div class="flex items-center gap-4 cursor-pointer" @click="switchView('dashboard')">
-        <div class="w-8 h-8 flex items-center justify-center bg-cyan-500/10 border border-cyan-500/50 rounded-sm">
-          <SparklesIcon class="w-5 h-5 text-cyan-400" />
-        </div>
 
+        <div
+          class="w-8 h-8 flex items-center justify-center bg-cyan-500/10 border border-cyan-500/50 rounded-sm overflow-hidden">
+          <img :src="ddnetIcon" alt="DDNET Flag" class="w-full h-full object-cover" />
+        </div>
         <div>
           <div class="font-black text-lg tracking-[0.2em] text-white">DDNETONE<span class="text-cyan-500"></span></div>
 
@@ -53,6 +55,11 @@ const switchView = (view) => {
           <span class="text-lg font-bold leading-none">+</span> SUBMISSION
         </button>
       </div>
+      <!-- <button @click="switchView('board')"
+      <!--   :class="['px-6 py-1.5 rounded-md text-sm font-mono transition-all duration-300 flex items-center gap-2',
+      <!--     activeView === 'board' ? 'bg-orange-500/20 text-orange-300 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'hover:text-white text-gray-500']">
+      <!--   <ChatBubbleLeftRightIcon class="w-4 h-4" />
+      <!-- </button> -->
 
       <div class="flex items-center gap-4">
         <div class="hidden sm:flex items-center gap-2 text-xs font-mono text-gray-500">

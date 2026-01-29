@@ -67,7 +67,12 @@ export function useGameData() {
 
   const chartData = computed(() => {
     return {
-      labels: growthData.value.map(d => `${Math.round(d.hours)}H`),
+      labels: growthData.value.map(d => {
+        if (!d.timestamp) return ''; // 防止舊資料沒時間
+        const date = new Date(d.timestamp);
+        // 回傳格式：1/29
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+      }),
       datasets: [
         {
           label: 'SCORE',

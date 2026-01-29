@@ -7,14 +7,35 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - ./.env
+    volumes:
+      - ./.env:/app/.env
     environment:
-      - GIN_MODE=release
-    
-    # ★ 重點 3：讓 Linux 也能解析 host.docker.internal
-    # (Windows/Mac 的 Docker Desktop 預設支援，加這行是為了相容 Linux)
-    extra_hosts:
+      GIN_MODE: release
+      DB_HOST: db
 
-      - "host.docker.internal:host-gateway"
-
+      DB_PORT: 5432
+    depends_on:
+      - db
     restart: always
+
+  db:
+    image: postgres:15-alpine
+    container_name: ddnet-db
+    restart: always
+    ports:
+      - "5434:5432"
+    env_file:
+      - ./.env
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./ddnetone.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      # Ensure there is exactly one space after the colon
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+
+
+volumes:
+  db_data:
