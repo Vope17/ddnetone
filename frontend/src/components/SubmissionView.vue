@@ -26,6 +26,8 @@ const form = ref({
 
   score: null,
   points: null,
+  isWip: false,
+  hasDummy: false,
   note: ''
 });
 
@@ -79,14 +81,29 @@ const selectMap = (map) => {
 
 // --- 4. 提交 ---
 const submitForm = async () => {
-  if (!form.value.map_name || !form.value.runner || !form.value.score) {
+  // 如果是 WIP，可以允許 Score 為 0，否則必須有 Score
+  if (!form.value.map_name || !form.value.runner || (!form.value.isWip && !form.value.score)) {
     alert("請填寫完整資訊");
     return;
   }
   status.value = 'submitting';
 
   try {
-    await axios.post('/api/records', form.value);
+    // 準備 payload
+    const payload = {
+      difficulty: form.value.difficulty,
+      map_name: form.value.map_name,
+      runner: form.value.runner,
+      score: form.value.score,
+      note: form.value.note,
+      // ★ 轉換狀態：勾選 WIP -> status 1, 否則 -> status 2
+      status: form.value.isWip ? 1 : 2,
+      // 確保欄位名稱對應後端 json tag
+      has_dummy: form.value.hasDummy
+    };
+
+    await axios.post('/api/records', payload);
+
     status.value = 'success';
     message.value = 'UPLOAD COMPLETE';
 
@@ -94,8 +111,10 @@ const submitForm = async () => {
     form.value.map_name = '';
     searchQuery.value = '';
     form.value.score = null;
-
     form.value.note = '';
+    form.value.isWip = false;   // Reset checkbox
+    form.value.hasDummy = false; // Reset checkbox
+
     fetchMapOptions();
 
     setTimeout(() => { status.value = 'idle'; }, 3000);
@@ -144,12 +163,13 @@ const submitForm = async () => {
           <div class="relative">
             <input type="text" v-model="searchQuery" @focus="showDropdown = true" @input="form.map_name = searchQuery"
               placeholder="Type to search..."
-              class="w-full bg-black/50 border border-white/20 text-white p-3 md:p-4 pl-12 font-mono focus:border-cyan-500 focus:outline-none transition-colors"
+              class="w-full bg-black/50 border border-white/20 text-white p-4 font-mono focus:border-cyan-500 focus:outline-none transition-colors pl-12"
               autocomplete="off" />
-            <MagnifyingGlassIcon class="w-6 h-6 text-gray-500 absolute left-4 top-4" />
+
+            <MagnifyingGlassIcon class="w-6 h-6 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
 
             <button type="button" @click="showDropdown = !showDropdown"
-              class="absolute right-3 top-4 text-gray-500 hover:text-white">
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
               <ChevronUpDownIcon class="w-6 h-6" />
             </button>
           </div>
@@ -161,7 +181,6 @@ const submitForm = async () => {
             </div>
             <div v-for="map in filteredOptions" :key="map.id" @click="selectMap(map)"
               class="p-3 hover:bg-cyan-900/30 cursor-pointer border-b border-white/5 flex justify-between items-center group">
-
               <span class="text-gray-200 font-mono group-hover:text-cyan-400">{{ map.map_name }}</span>
               <span v-if="map.points || map.score"
                 class="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400 font-mono group-hover:text-cyan-300">
@@ -177,6 +196,45 @@ const submitForm = async () => {
           <label class="text-xs font-mono text-cyan-500/70">SCORE</label>
           <input v-model.number="form.score" type="number" placeholder="0" required readonly
             class="w-full bg-black/50 border border-white/20 text-cyan-400 p-3 md:p-4 font-mono text-xl font-bold focus:border-cyan-500 focus:outline-none transition-colors" />
+        </div>
+        <div
+          class="md:col-span-2 flex flex-col sm:flex-row justify-start gap-6 bg-white/[0.03] p-4 border border-white/10 rounded">
+
+          <label class="flex items-center gap-3 cursor-pointer group select-none">
+            <div class="relative flex items-center">
+              <input type="checkbox" v-model="form.isWip" class="peer sr-only" />
+              <div
+                class="w-5 h-5 border-2 border-gray-500 rounded peer-checked:bg-yellow-500 peer-checked:border-yellow-500 transition-all">
+              </div>
+              <WrenchScrewdriverIcon
+                class="w-3.5 h-3.5 text-black absolute left-0.5 top-0.5 opacity-0 peer-checked:opacity-100 transition-opacity" />
+            </div>
+            <div>
+              <span
+                class="block text-sm font-mono font-bold text-gray-300 group-hover:text-white transition-colors">WORK IN
+                PROGRESS</span>
+              <span class="text-[10px] text-gray-500">Status will be WIP (No Points Awarded)</span>
+            </div>
+          </label>
+
+          <div class="w-px bg-white/10 hidden sm:block"></div>
+
+          <label class="flex items-center gap-3 cursor-pointer group select-none">
+            <div class="relative flex items-center">
+              <input type="checkbox" v-model="form.hasDummy" class="peer sr-only" />
+              <div
+                class="w-5 h-5 border-2 border-gray-500 rounded peer-checked:bg-purple-500 peer-checked:border-purple-500 transition-all">
+              </div>
+              <UserPlusIcon
+                class="w-3.5 h-3.5 text-white absolute left-0.5 top-0.5 opacity-0 peer-checked:opacity-100 transition-opacity" />
+            </div>
+            <div>
+              <span class="block text-sm font-mono font-bold text-gray-300 group-hover:text-white transition-colors">
+                DUMMY?</span>
+              <span class="text-[10px] text-gray-500">Is dummy alive?</span>
+            </div>
+          </label>
+
         </div>
 
         <div class="space-y-2 md:col-span-2">

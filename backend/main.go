@@ -45,6 +45,7 @@ type MapRecord struct {
 	Note       string     `json:"note"`
 	Status     int        `json:"status"` // 0:未完成, 1:進行中, 2:已完成
 	FinishTime *time.Time `gorm:"column:finish_time" json:"finish_time"`
+	HasDummy   bool       `gorm:"column:has_dummy" json:"has_dummy"`
 }
 
 // --- Models ---
@@ -59,6 +60,8 @@ type Message struct {
 func (m *MapRecord) BeforeSave(tx *gorm.DB) error {
 	if m.Runner == "" || m.Runner == "-" || m.Runner == "nan" {
 		m.Status = 0
+	} else if m.Status == 1 {
+		// ★ 修改：如果明確指定為 WIP (1)，則保持為 1，不自動變更為 2
 	} else if m.Score > 0 {
 		m.Status = 2
 	} else {
@@ -220,18 +223,25 @@ func createRecord(c *gin.Context) {
 		// 更新欄位
 		existingRecord.Runner = newRecord.Runner
 
-		existingRecord.Score = newRecord.Score // 這是玩家獲得的分數
 		existingRecord.Note = newRecord.Note
 		existingRecord.FinishTime = &now
+		existingRecord.Status = newRecord.Status
+		existingRecord.HasDummy = newRecord.HasDummy
+		existingRecord.Score = newRecord.Score
+
+		// ★★★ 關鍵新增：更新跑者積分 ★★★
+		if existingRecord.Status == 2 {
+			updatePlayerStats(existingRecord.Runner, existingRecord.Score)
+		} else {
+			existingRecord.Score = 0
+			existingRecord.HasDummy = false
+		}
 
 		// 儲存 (會觸發 BeforeSave 自動變更 Status 為 2)
 		if err := db.Save(&existingRecord).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update record"})
 			return
 		}
-
-		// ★★★ 關鍵新增：更新跑者積分 ★★★
-		updatePlayerStats(existingRecord.Runner, existingRecord.Score)
 
 		// ★★★ 新增：更新全服總覽 ★★★
 		updateGlobalSummary()
@@ -295,7 +305,7 @@ func updatePlayerStats(runnerNamesRaw string, score int) {
 			// (B) 跑者不存在 -> 建立
 			newPlayer := Player{
 				Name:              runnerName,
-				Role:              "Agent",
+				Role:              "PLAYER",
 				ScoreContribution: float64(score),
 				MapCount:          1,
 				ContributionRate:  0,
