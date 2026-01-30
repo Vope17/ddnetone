@@ -1,55 +1,66 @@
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: ddnet-nginx
+  # --- 前端服務 (包含 Nginx) ---
+  frontend:
+    build: 
+      context: ./frontend  # 指向 frontend 資料夾
+      dockerfile: Dockerfile
+    container_name: ddnet-frontend
     ports:
-      - "8080:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - assets:/usr/share/nginx/html:ro
+      - "8080:80"  # 外部訪問 8080 -> 內部 Nginx 80
+
     depends_on:
-      - app
+      - backend
     restart: always
 
-  app:
-    build: .
-    container_name: ddnet-app
-    ports:
-      - "8080"
+
+  # --- 後端服務 (Go) ---
+  backend:
+    build: 
+      context: ./backend # 指向 backend 資料夾
+      dockerfile: Dockerfile
+
+    container_name: ddnet-backend
+    # 後端不需要對外開放 ports，因為都透過 frontend (Nginx) 轉發
+    # 如果你需要直接測試 API，可以解開下面這行：
+
+    # ports:
+    #   - "3000:8080" 
     env_file:
+
       - ./.env
     volumes:
       - ./.env:/app/.env
-      - assets:/app/dist
+
     environment:
       GIN_MODE: release
-      DB_HOST: db
 
+      DB_HOST: db
       DB_PORT: 5432
     depends_on:
       - db
     restart: always
 
+  # --- 資料庫 (不變) ---
   db:
+
     image: postgres:15-alpine
     container_name: ddnet-db
     restart: always
     ports:
+
       - "5434:5432"
     env_file:
       - ./.env
     volumes:
       - db_data:/var/lib/postgresql/data
+      # 這裡的路徑可能要根據你現在 sql 檔案的位置調整
       - ./ddnetone.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
-      # Ensure there is exactly one space after the colon
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
 
-
 volumes:
   db_data:
-  assets:

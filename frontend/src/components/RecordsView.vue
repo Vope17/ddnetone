@@ -19,7 +19,7 @@ const props = defineProps({
 });
 
 // --- State ---
-const currentTab = ref('Insane');
+const currentTab = ref('All');
 const statusFilter = ref('All');
 const searchQuery = ref('');
 const sortType = ref('DEFAULT'); // DEFAULT (Score), STARS, POINTS

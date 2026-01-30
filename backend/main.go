@@ -348,7 +348,7 @@ func updateGlobalSummary() {
 	if err := db.Last(&summary).Error; err != nil {
 		// 如果還沒有 Summary，就建立一筆新的
 		summary = Summary{
-			TargetScore: 32450, // 您的目標分數
+			TargetScore: 10000, // 您的目標分數
 		}
 		db.Create(&summary)
 	}

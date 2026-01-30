@@ -162,7 +162,7 @@ def main():
                 INSERT INTO summaries (current_score, target_score, completed_maps, last_update)
                 VALUES (
                     (SELECT COALESCE(SUM(score), 0) FROM map_records),
-                    32450, -- 您的目標分數
+                    10000, -- 您的目標分數
                     (SELECT COUNT(*) FROM map_records),
                     NOW()
                 );
