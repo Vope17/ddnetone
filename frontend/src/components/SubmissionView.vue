@@ -248,7 +248,7 @@ const submitForm = async () => {
             status === 'success' ? 'bg-green-600 text-cyan-300' :
               status === 'error' ? 'bg-red-600 text-white' :
                 'bg-cyan-600 hover:bg-cyan-500 text-black']">
-            <span v-if="status === 'idle'">SEND_DATA</span>
+            <span v-if="status === 'idle'">SUBMIT</span>
             <span v-if="status === 'submitting'" class="animate-pulse">PROCESSING...</span>
             <span v-if="status === 'success'">DONE</span>
             <PaperAirplaneIcon v-if="status === 'idle'" class="w-6 h-6" />

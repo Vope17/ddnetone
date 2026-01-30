@@ -1,5 +1,5 @@
 // src/composables/useGameData.js
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import axios from 'axios';
 
 export function useGameData() {
@@ -30,16 +30,10 @@ export function useGameData() {
     growthData.value = Array.from({ length: 12 }, (_, i) => ({ hours: i * 2, points: 1000 + Math.random() * 5000 + (i * 1000) }));
   };
 
-  const API_BASE = 'http://localhost:8080';
-
   const fetchData = async () => {
-
     try {
+      // 為了避免畫面閃爍，這裡通常不需要清空數據，直接覆蓋即可
       const [sumRes, playRes, mapRes, growthRes] = await Promise.all([
-        // axios.get(`${API_BASE}/api/summary`),
-        // axios.get(`${API_BASE}/api/leaderboard`),
-        // axios.get(`${API_BASE}/api/maps`),
-        // axios.get(`${API_BASE}/api/growth`)
         axios.get(`/api/summary`),
         axios.get(`/api/leaderboard`),
         axios.get(`/api/maps`),
@@ -50,13 +44,30 @@ export function useGameData() {
       players.value = playRes.data;
       maps.value = mapRes.data;
       growthData.value = growthRes.data;
+
+      // 可以在這裡 console.log("Auto Refreshed") 確認有沒有在跑
     } catch (e) {
-      console.warn("API 連線失敗，切換至展示模式");
-      mockData(); // 如果您有完整的 mockData 函數，請放在這裡
+      console.warn("API 連線失敗，保持現有數據或切換至展示模式");
+      // 注意：自動更新失敗時，通常不建議切換 mockData，保留舊數據體驗較好
+      if (players.value.length === 0) mockData();
     }
   };
+  // 定義計時器變數
+  let pollingTimer = null;
 
-  onMounted(fetchData);
+  onMounted(() => {
+    // 1. 畫面載入時先抓一次
+    fetchData();
+
+    // 2. 設定輪詢：每 5000 毫秒 (5秒) 自動抓取一次
+    // 您可以根據需求調整時間，例如 3000 (3秒) 或 10000 (10秒)
+    pollingTimer = setInterval(fetchData, 5000);
+  });
+
+  // 3. 當組件卸載時，務必清除計時器 (雖然 App.vue 通常不會卸載，但這是好習慣)
+  onUnmounted(() => {
+    if (pollingTimer) clearInterval(pollingTimer);
+  });
 
   const progressPercent = computed(() => {
     if (!summary.value.target_score) return 0;
@@ -106,6 +117,7 @@ export function useGameData() {
     maps,
     growthData,
     progressPercent,
-    chartData
+    chartData,
+    fetchData
   };
 }

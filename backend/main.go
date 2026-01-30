@@ -119,12 +119,12 @@ func main() {
 
 	r := gin.Default()
 
-	r.Static("/assets", "./dist/assets")
-	r.LoadHTMLGlob("dist/*.html")
+	// r.Static("/assets", "./dist/assets")
+	// r.LoadHTMLGlob("dist/*.html")
 
-	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
-	})
+	// r.GET("/", func(c *gin.Context) {
+	// 	c.HTML(http.StatusOK, "index.html", nil)
+	// })
 
 	r.Use(cors.New(cors.Config{
 		// AllowAllOrigins: true,
