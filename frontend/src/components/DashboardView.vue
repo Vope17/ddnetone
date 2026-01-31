@@ -24,16 +24,46 @@ const chartOptions = {
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.9)',
-      titleColor: '#22d3ee',
-      titleFont: { family: "'JetBrains Mono', monospace" },
-      bodyColor: '#fff',
-      bodyFont: { family: "'JetBrains Mono', monospace" },
+      backgroundColor: 'rgba(0, 0, 0, 0.95)', //稍微加深背景
+      titleColor: '#22d3ee', // Cyan 標題 (地圖名)
+      titleFont: { family: "'JetBrains Mono', monospace", size: 13 },
+      bodyColor: '#e2e8f0', // 淺灰內容
+      bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
       borderColor: '#334155',
       borderWidth: 1,
-      padding: 10,
-      displayColors: false,
-      callbacks: { label: (c) => `> OUTPUT: ${c.parsed.y}` }
+      padding: 12,
+      displayColors: false, // 隱藏前面的小色塊
+
+      callbacks: {
+        // 1. 標題：改為顯示總分 (原本的 context.parsed.y 在這裡要從 tooltipItems 拿)
+        title: (tooltipItems) => {
+          const score = tooltipItems[0].parsed.y;
+          return `> POINTS: ${score}`;
+        },
+
+        // 2. 內容：顯示玩家、地圖、以及地圖滿分
+
+        label: (context) => {
+          const index = context.dataIndex;
+          const dataset = context.dataset;
+
+          const data = dataset.sourceData ? dataset.sourceData[index] : null;
+
+          if (data) {
+            // 回傳陣列會自動換行
+            return [
+              `> RUNNER : ${data.runner || 'UNKNOWN'}`,
+              `> MAP    : ${data.map_name || 'UNKNOWN'}`,
+              `> MAP_PTS: ${data.map_points || 0}`,
+
+            ];
+          } else {
+
+            // 備用方案，若無資料則顯示基本的點數資訊
+            return `> DATA: SYSTEM_SYNC`;
+          }
+        }
+      }
     }
   },
   scales: {
@@ -76,7 +106,6 @@ const chartOptions = {
         </div>
 
         <div class="text-3xl font-bold text-white font-mono tracking-tight">{{ summary.completed_maps }}</div>
-        <div class="text-[10px] text-gray-500 font-mono mt-1">LATEST: ASCENT_X</div>
 
       </div>
 
@@ -142,7 +171,7 @@ const chartOptions = {
               </div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-sm text-gray-200 truncate group-hover:text-yellow-100 transition">{{ p.name
-                }}</div>
+                  }}</div>
                 <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
                   <span class="uppercase tracking-wider text-gray-600">{{ p.role }}</span>
                 </div>

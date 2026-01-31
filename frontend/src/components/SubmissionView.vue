@@ -102,7 +102,8 @@ const submitForm = async () => {
       has_dummy: form.value.hasDummy
     };
 
-    await axios.post('/api/records', payload);
+    const response = await axios.post('/api/records', payload);
+    // latestSubmission.value = response.data;
 
     status.value = 'success';
     message.value = 'UPLOAD COMPLETE';

@@ -66,7 +66,7 @@ func CreateRecord(c *gin.Context) {
 
 		UpdateGlobalSummary()
 		// 呼叫 Growth Snapshot (需先取得最新 Summary 數據)
-		triggerSnapshot(existingRecord.Runner)
+		triggerSnapshot(existingRecord.Runner, existingRecord.MapName, existingRecord.Score)
 
 		c.JSON(http.StatusOK, existingRecord)
 
@@ -87,17 +87,17 @@ func CreateRecord(c *gin.Context) {
 		}
 
 		UpdateGlobalSummary()
-		triggerSnapshot(newRecord.Runner)
+		triggerSnapshot(newRecord.Runner, newRecord.MapName, newRecord.Score)
 
 		c.JSON(http.StatusCreated, newRecord)
 	}
 }
 
 // 輔助函式：取得當前數據並觸發快照
-func triggerSnapshot(runner string) {
+func triggerSnapshot(runner string, map_name string, map_points int) {
 	var summary model.Summary
 	// 取得剛才 UpdateGlobalSummary 更新後的最新資料
 	if err := db.GetDB().Last(&summary).Error; err == nil {
-		RecordGrowthSnapshot(summary.CurrentScore, summary.CompletedMaps, runner)
+		RecordGrowthSnapshot(summary.CurrentScore, summary.CompletedMaps, runner, map_name, map_points)
 	}
 }

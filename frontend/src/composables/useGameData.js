@@ -7,6 +7,7 @@ export function useGameData() {
   const players = ref([]);
   const maps = shallowRef([]);
   const growthData = ref([]);
+  // const latestSubmission = ref(null);
 
   // 模擬數據
   const mockData = () => {
@@ -105,7 +106,7 @@ export function useGameData() {
           fill: true,
           tension: 0.3,
           data: growthData.value.map(d => d.points),
-
+          sourceData: growthData.value
         }
       ]
     };

@@ -16,7 +16,7 @@ func GetGrowth(c *gin.Context) {
 	c.JSON(http.StatusOK, growth)
 }
 
-func RecordGrowthSnapshot(score int, maps int, runner string) {
+func RecordGrowthSnapshot(score int, maps int, runner string, map_name string, map_points int) {
 	database := db.GetDB()
 	var firstRecord model.MapRecord
 	var startTime time.Time
@@ -45,6 +45,8 @@ func RecordGrowthSnapshot(score int, maps int, runner string) {
 		Points:    score,
 		Maps:      maps,
 		Runner:    runner,
+		MapName:   map_name,
+		MapPoints: map_points,
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
