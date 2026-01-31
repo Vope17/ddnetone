@@ -20,7 +20,7 @@ const props = defineProps({
 
 // --- State ---
 const currentTab = ref('All');
-const statusFilter = ref('All');
+const statusFilter = ref('Completed');
 const searchQuery = ref('');
 const sortType = ref('DEFAULT'); // DEFAULT (Score), STARS, POINTS
 const sortOrder = ref('DESC');   // DESC, ASC
@@ -277,11 +277,11 @@ const formatDate = (dateStr) => {
             <div class="text-right">
               <span :class="['font-mono text-xl font-bold', map.status === 2 ? 'text-white' : 'text-gray-600']">{{
                 map.points
-                }}</span>
+              }}</span>
               <span class="text-[9px] text-gray-600 ml-1">PTS</span>
             </div>
           </div>
-          <div v-if="map.has_dummy" class="flex items-center gap-1 mt-1 text-purple-400" title="Uses Dummy">
+          <div v-if="map.has_dummy" class="flex items-center gap-1 mt-1 text-purple-400" title="Dummy Alive">
             <UserGroupIcon class="w-4 h-4" />
             <span class="text-[9px] font-mono border border-purple-500/30 px-1 rounded bg-purple-500/10">DUMMY</span>
           </div>
@@ -293,7 +293,7 @@ const formatDate = (dateStr) => {
           <div class="flex flex-col gap-1 mb-3">
             <div class="flex items-center gap-2">
               <span class="text-[9px] font-mono border border-white/10 px-1 rounded text-gray-500">{{ map.difficulty
-                }}</span>
+              }}</span>
               <span v-if="map.runner" class="text-[9px] font-mono text-gray-400">BY {{ map.runner }}</span>
             </div>
             <div v-if="map.finish_time" class="flex items-center gap-1.5 text-[9px] font-mono text-cyan-500/70 mt-1">

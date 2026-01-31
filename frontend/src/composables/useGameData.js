@@ -1,11 +1,11 @@
 // src/composables/useGameData.js
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue';
 import axios from 'axios';
 
 export function useGameData() {
   const summary = ref({ current_score: 0, target_score: 32450, completed_maps: 0 });
   const players = ref([]);
-  const maps = ref([]);
+  const maps = shallowRef([]);
   const growthData = ref([]);
 
   // 模擬數據

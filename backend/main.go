@@ -118,7 +118,6 @@ func main() {
 	db.AutoMigrate(&Summary{}, &Player{}, &MapRecord{}, &GrowthData{}, &Message{})
 
 	r := gin.Default()
-
 	// r.Static("/assets", "./dist/assets")
 	// r.LoadHTMLGlob("dist/*.html")
 
