@@ -1,10 +1,10 @@
 <script setup>
 import { ref } from 'vue';
 import { useGameData } from './composables/useGameData';
-import NavBar from './components/NavBar.vue';
-import DashboardView from './components/DashboardView.vue';
-import RecordsView from './components/RecordsView.vue';
-import SubmissionView from './components/SubmissionView.vue';
+import NavBar from './views/NavBar.vue';
+import DashboardView from './views/DashboardView.vue';
+import RecordsView from './views/RecordsView.vue';
+import SubmissionView from './views/SubmissionView.vue';
 // import MessageBoardView from './components/MessageBoardView.vue';
 
 const activeView = ref('dashboard');
