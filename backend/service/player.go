@@ -47,3 +47,21 @@ func UpdatePlayerStats(runnerNamesRaw string, score int) {
 		}
 	}
 }
+
+func GetPlayerOptions(c *gin.Context) {
+	var names []string
+
+	err := db.GetDB().
+		Model(&model.Player{}).
+		Distinct("name").
+		Order("name ASC").
+		Pluck("name", &names).Error // 抓取 name 欄位值並存入字串陣列
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "無法獲取玩家列表"})
+		return
+	}
+
+	// 回傳單純的字串陣列，符合前端 PlayerSearchInput 的需求
+	c.JSON(http.StatusOK, names)
+}
