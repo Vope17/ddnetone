@@ -8,7 +8,7 @@ import SubmissionView from './views/SubmissionView.vue';
 // import MessageBoardView from './components/MessageBoardView.vue';
 
 const activeView = ref('dashboard');
-const { summary, players, maps, progressPercent, chartData, fetchData } = useGameData();
+const { summary, players, maps, progressPercent, chartData, fetchData, growthData } = useGameData();
 </script>
 
 <template>
@@ -35,7 +35,7 @@ const { summary, players, maps, progressPercent, chartData, fetchData } = useGam
 
       <transition name="fade-slide" mode="out-in">
         <DashboardView v-if="activeView === 'dashboard'" :summary="summary" :players="players"
-          :progressPercent="progressPercent" :chartData="chartData" />
+          :progressPercent="progressPercent" :chartData="chartData" :growth-data="growthData" />
 
         <RecordsView v-else-if="activeView === 'maps'" :maps="maps" @record-deleted="fetchData" />
 

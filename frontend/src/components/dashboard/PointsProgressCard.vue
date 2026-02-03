@@ -20,10 +20,46 @@ const manualLabels = [
   { score: 5000, text: '2026/01/31 21:00' },
 ];
 
+// 2. 自動計算里程碑 (間隔 1000)
+const autoMilestones = computed(() => {
+  // 如果沒有歷史資料，就回傳空陣列
+  if (!props.growthData || props.growthData.length === 0) return [];
+
+  const results = [];
+  const targetMax = props.targetScore || 10000;
+
+  // 使用 for 迴圈，從 1000 開始，每次加 1000，直到目標分數
+  for (let s = 5000; s <= targetMax; s += 1000) {
+
+    // 【注意】這裡假設 growthData 裡的分數欄位叫 "score"
+    // 如果你的 API 回傳欄位是 "points" 或 "total_score"，請將 d.score 改成對應名稱
+    const match = props.growthData.find(d => d.points >= s);
+
+    if (match) {
+      // 日期格式化邏輯 (YYYY/MM/DD)
+      const timeStr = match.timestamp
+        ? new Date(match.timestamp).toLocaleString('sv-SE').replace(/-/g, '/') : 'UNKNOWN';
+
+      results.push({
+        score: match.points, // 顯示實際分數
+        text: timeStr// 顯示格式化日期
+      });
+    }
+  }
+
+  return results;
+});
+
+// 3. 合併並計算位置
 const milestones = computed(() => {
   const target = props.targetScore || 10000;
-  return manualLabels.map(item => ({
+
+  // 合併手動與自動產生的里程碑
+  const allMilestones = [...manualLabels, ...autoMilestones.value];
+
+  return allMilestones.map(item => ({
     ...item,
+    // 計算 CSS left 百分比
     left: (item.score / target) * 100 + '%'
   }));
 });
@@ -68,7 +104,7 @@ const milestones = computed(() => {
               <span class="text-[10px] text-white font-bold font-mono leading-none">{{ m.score }}</span>
               <span
                 class="text-[8px] text-cyan-400 font-mono mt-0.5 whitespace-nowrap border-t border-white/10 pt-0.5 w-full text-center">{{
-                m.text }}</span>
+                  m.text }}</span>
             </div>
           </div>
         </div>

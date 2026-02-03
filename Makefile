@@ -1,21 +1,48 @@
 all:
 	docker compose up -d --build
 
-push_f:
-	# 1. 重新編譯 (加上 --build 確保它不會用舊的快取)
-	docker compose build
-	# 2. 貼上標籤 (建議把 v1 改成 v2，或是用 latest)
-	# docker tag ddnetone-app:latest asia-east1-docker.pkg.dev/optical-net-485503-g6/ddnetone/ddnetone-app:latest
-	# 3. 推送到 GCP
-	#	docker push asia-east1-docker.pkg.dev/optical-net-485503-g6/ddnetone/ddnetone-app:latest
-	# 貼標籤
-	docker tag ddnetone-frontend asia-east1-docker.pkg.dev/optical-net-485503-g6/ddnetone/ddnetone-app/frontend:latest
-	# 推送
-	docker push asia-east1-docker.pkg.dev/optical-net-485503-g6/ddnetone/ddnetone-app/frontend:latest
+# --- 變數設定 (方便維護) ---
+GCP_REGION := asia-east1
+PROJECT_ID := optical-net-485503-g6
+REPO_NAME  := ddnetone
+APP_NAME   := ddnetone-app
+BASE_URL   := $(GCP_REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPO_NAME)/$(APP_NAME)
 
-push_b:
+# --- 版本控制邏輯 ---
+# 預設使用 Git 的短 Hash (例如: a1b2c3d)
+# 如果你有手動輸入 VERSION=v1.0，則使用你輸入的
+GIT_HASH := $(shell git rev-parse --short HEAD)
+VERSION  ?= $(GIT_HASH)
+
+# --- Frontend ---
+push_f:
+	@echo "正在構建並推送 Frontend 版本: $(VERSION)"
 	docker compose build
-	# 貼標籤
-	docker tag ddnetone-backend asia-east1-docker.pkg.dev/optical-net-485503-g6/ddnetone/ddnetone-app/backend:latest
-	# 推送
-	docker push asia-east1-docker.pkg.dev/optical-net-485503-g6/ddnetone/ddnetone-app/backend:latest
+	
+	# 1. 標記特定版本 (如 v1 或 git-hash)
+	docker tag ddnetone-frontend $(BASE_URL)/frontend:$(VERSION)
+	# 2. 標記 latest (保持最新)
+	docker tag ddnetone-frontend $(BASE_URL)/frontend:latest
+	
+	# 3. 推送兩者
+	docker push $(BASE_URL)/frontend:$(VERSION)
+	docker push $(BASE_URL)/frontend:latest
+	@echo "Frontend 推送完成！版本: $(VERSION)"
+
+# --- Backend ---
+push_b:
+	@echo "正在構建並推送 Backend 版本: $(VERSION)"
+	docker compose build
+	
+	# 1. 標記特定版本
+	docker tag ddnetone-backend $(BASE_URL)/backend:$(VERSION)
+	# 2. 標記 latest
+	docker tag ddnetone-backend $(BASE_URL)/backend:latest
+	
+	# 3. 推送兩者
+	docker push $(BASE_URL)/backend:$(VERSION)
+	docker push $(BASE_URL)/backend:latest
+	@echo "Backend 推送完成！版本: $(VERSION)"
+
+# --- 一次推全部 (選用) ---
+push_all: push_f push_b

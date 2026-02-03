@@ -4,8 +4,9 @@ import CurrentPointsCard from '../components/dashboard/CurrentPointsCard.vue';
 import MapsProgressCard from '../components/dashboard/MapsProgressCard.vue';
 import PointsProgressCard from '../components/dashboard/PointsProgressCard.vue';
 import GrowthChart from '../components/dashboard/GrowthChart.vue';
-
 import PlayerLeaderboard from '../components/dashboard/PlayerLeaderboard.vue';
+
+import { watch } from 'vue';
 
 // 接收來自 App.vue 或 Router 的 props
 const props = defineProps({
@@ -13,7 +14,7 @@ const props = defineProps({
   players: Array,
   progressPercent: String,
   chartData: Object,
-  growthData: Object
+  growthData: Array
 });
 </script>
 

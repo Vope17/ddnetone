@@ -37,8 +37,15 @@ const chartOptions = {
           const dataset = context.dataset;
           const data = dataset.sourceData ? dataset.sourceData[index] : null;
           if (data) {
+            // 1. 轉成 Date 物件 (自動處理 UTC -> 當地時區)
+            // 2. 轉成瑞典格式 (YYYY-MM-DD hh:mm:ss)
+            // 3. 把 "-" 換成 "/"
+            const timeStr = data.timestamp
+              ? new Date(data.timestamp).toLocaleString('sv-SE').replace(/-/g, '/')
+              : 'UNKNOWN';
             return [
               `> RUNNER : ${data.runner || 'UNKNOWN'}`,
+              `> TIME   : ${timeStr || 'UNKNOWN'}`,
               `> MAP    : ${data.map_name || 'UNKNOWN'}`,
               `> MAP_PTS: ${data.map_points || 0}`,
             ];

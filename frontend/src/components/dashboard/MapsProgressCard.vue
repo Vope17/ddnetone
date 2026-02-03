@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
   completedMaps: {
@@ -12,25 +12,62 @@ const props = defineProps({
 const TARGET_MAPS = 2403;
 
 // 設定地圖里程碑
-const manualMapLabels = [
+const manualMapLabels = ref([
   { count: 0, text: '2024/09/30 19:30 開始傳奇的一刻' },
   { count: 100, text: '2024/10/01' },
   { count: 300, text: '2024/10/06' },
   { count: 400, text: '2026/01/24' },
-];
+]);
 
+// 2. 自動計算 500 ~ TARGET_MAPS (間隔 100) 的里程碑
+const autoMilestones = computed(() => {
+  // 檢查資料是否存在
+  if (!props.growthData || props.growthData.length === 0) return [];
+
+  const results = [];
+
+  // 使用 for 迴圈，從 500 開始，每次加 100，直到超過 TARGET_MAPS (2403)
+  for (let target = 500; target <= TARGET_MAPS; target += 100) {
+
+    // 在 growthData 中找到「第一筆」maps 大於等於 target 的資料
+    const match = props.growthData.find(d => d.maps >= target);
+
+    if (match) {
+      // --- 日期格式化邏輯 Start ---
+      const timeStr = match.timestamp
+        ? new Date(match.timestamp).toLocaleString('sv-SE').replace(/-/g, '/') : 'UNKNOWN';
+
+      // --- 日期格式化邏輯 End ---
+
+      results.push({
+        count: match.maps, // 使用當下實際達成的數字 (例如 503)
+        text: timeStr // 格式化後的日期 (例如 2024/10/05)
+      });
+    }
+  }
+
+  return results;
+});
 // 計算百分比
 const mapsPercent = computed(() => {
   return Math.min((props.completedMaps / TARGET_MAPS) * 100, 100).toFixed(1);
 });
 
-// 計算位置 (這裡你可以隨時換成我們之前討論過的更強大的混合邏輯)
+// 3. 合併手動與自動里程碑，並計算 CSS 位置
 const mapMilestones = computed(() => {
-  return manualMapLabels.map(item => ({
+  // 將手動設定和自動抓取的資料合併
+  const allMilestones = [...manualMapLabels.value, ...autoMilestones.value];
+
+  // 轉換成包含 left 屬性的格式
+  return allMilestones.map(item => ({
     ...item,
     left: (item.count / TARGET_MAPS) * 100 + '%'
   }));
 });
+
+computed(() => {
+
+})
 </script>
 
 <template>
@@ -74,7 +111,7 @@ const mapMilestones = computed(() => {
               <span class="text-[10px] text-white font-bold font-mono leading-none">{{ m.count }}</span>
               <span
                 class="text-[8px] text-violet-300 font-mono mt-0.5 whitespace-nowrap border-t border-white/10 pt-0.5 w-full text-center">{{
-                m.text }}</span>
+                  m.text }}</span>
 
             </div>
           </div>
