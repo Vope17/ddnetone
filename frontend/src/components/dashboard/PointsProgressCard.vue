@@ -29,7 +29,7 @@ const autoMilestones = computed(() => {
   const targetMax = props.targetScore || 10000;
 
   // 使用 for 迴圈，從 1000 開始，每次加 1000，直到目標分數
-  for (let s = 5000; s <= targetMax; s += 1000) {
+  for (let s = 6000; s <= targetMax; s += 1000) {
 
     // 【注意】這裡假設 growthData 裡的分數欄位叫 "score"
     // 如果你的 API 回傳欄位是 "points" 或 "total_score"，請將 d.score 改成對應名稱
@@ -41,7 +41,7 @@ const autoMilestones = computed(() => {
         ? new Date(match.timestamp).toLocaleString('sv-SE').replace(/-/g, '/') : 'UNKNOWN';
 
       results.push({
-        score: match.points, // 顯示實際分數
+        score: s, // 顯示實際分數
         text: timeStr// 顯示格式化日期
       });
     }
