@@ -14,10 +14,11 @@ BASE_URL   := $(GCP_REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPO_NAME)/$(APP_NAME
 GIT_HASH := $(shell git rev-parse --short HEAD)
 VERSION  ?= $(GIT_HASH)
 
+build:
+	docker compose build
 # --- Frontend ---
 push_f:
 	@echo "正在構建並推送 Frontend 版本: $(VERSION)"
-	docker compose build
 	
 	# 1. 標記特定版本 (如 v1 或 git-hash)
 	docker tag ddnetone-frontend $(BASE_URL)/frontend:$(VERSION)
@@ -32,7 +33,6 @@ push_f:
 # --- Backend ---
 push_b:
 	@echo "正在構建並推送 Backend 版本: $(VERSION)"
-	docker compose build
 	
 	# 1. 標記特定版本
 	docker tag ddnetone-backend $(BASE_URL)/backend:$(VERSION)
