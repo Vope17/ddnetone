@@ -14,6 +14,13 @@ const showDropdown = ref(false);
 const mapOptions = ref([]);
 const searchQuery = ref('');
 
+watch(() => props.modelValue, (newVal) => {
+  // 當外部傳入的值與內部不同時（例如外部重置為空），同步更新內部狀態
+  if (newVal !== searchQuery.value) {
+    searchQuery.value = newVal || '';
+  }
+});
+
 // 當難度改變時，重新抓取地圖列表
 watch(() => props.difficulty, async (newDiff) => {
   if (!newDiff) return;
@@ -28,8 +35,21 @@ watch(() => props.difficulty, async (newDiff) => {
   }
 }, { immediate: true });
 
-// 前端過濾
+const fetchMapOptions = async () => {
+  if (!props.difficulty) return;
+  try {
+    const res = await axios.get(`/api/map-options?difficulty=${props.difficulty}`);
+    mapOptions.value = res.data;
+  } catch (e) {
+    console.error("無法取得地圖列表", e);
+  }
+};
 
+defineExpose({
+  refresh: fetchMapOptions
+});
+
+// 前端過濾
 const filteredOptions = computed(() => {
   if (!searchQuery.value) return mapOptions.value;
   const query = searchQuery.value.toLowerCase();
