@@ -9,6 +9,8 @@ import PlayerSearchInput from '../components/submission/PlayerSearchInput.vue';
 import SubmissionFlags from '../components/submission/SubmissionFlags.vue';
 import StatusButton from '../components/submission/StatusButton.vue';
 
+const mapInputRef = ref(null);
+
 // 難度列表
 const difficulties = [
   'NOVICE', 'MODERATE', 'BRUTAL', 'INSANE',
@@ -74,6 +76,10 @@ const submitForm = async () => {
 
     form.value.hasDummy = false;
 
+    if (mapInputRef.value) {
+      mapInputRef.value.refresh();
+    }
+
     // 3秒後恢復按鈕
     setTimeout(() => { status.value = 'idle'; }, 3000);
 
@@ -116,7 +122,8 @@ const submitForm = async () => {
 
           <PlayerSearchInput v-model="form.runner" />
 
-          <MapSearchInput v-model="form.map_name" :difficulty="form.difficulty" @select="handleMapSelect" />
+          <MapSearchInput ref="mapInputRef" v-model="form.map_name" :difficulty="form.difficulty"
+            @select="handleMapSelect" />
 
           <div class="space-y-2 relative">
             <label class="text-xs font-mono text-cyan-500/70">SCORE</label>
