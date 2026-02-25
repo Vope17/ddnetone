@@ -5,7 +5,7 @@ import NavBar from './views/NavBar.vue';
 import DashboardView from './views/DashboardView.vue';
 import RecordsView from './views/RecordsView.vue';
 import SubmissionView from './views/SubmissionView.vue';
-// import MessageBoardView from './components/MessageBoardView.vue';
+import AdminView from './views/AdminView.vue';
 
 const activeView = ref('dashboard');
 const { summary, players, maps, progressPercent, chartData, fetchData, growthData, milestonesData, scoreMilestonesData } = useGameData();
@@ -40,6 +40,8 @@ const { summary, players, maps, progressPercent, chartData, fetchData, growthDat
         <RecordsView v-else-if="activeView === 'maps'" :maps="maps" @record-deleted="fetchData" />
 
         <SubmissionView v-else-if="activeView === 'submission'" />
+
+        <AdminView v-else-if="activeView === 'admin'" />
 
         <!-- <MessageBoardView v-else-if="activeView === 'board'" /> -->
       </transition>

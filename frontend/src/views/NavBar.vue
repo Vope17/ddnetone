@@ -14,8 +14,22 @@ const isMobileMenuOpen = ref(false);
 
 const switchView = (view) => {
   emit('update:activeView', view);
+  isMobileMenuOpen.value = false;
+};
 
-  isMobileMenuOpen.value = false; // 點擊後自動收起選單
+// 隱密後台：快速點擊 Logo 5 次觸發
+let logoClickCount = 0;
+let logoClickTimer = null;
+const triggerAdmin = () => {
+  logoClickCount++;
+  clearTimeout(logoClickTimer);
+  logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 2000);
+  if (logoClickCount >= 5) {
+    logoClickCount = 0;
+    emit('update:activeView', 'admin');
+  } else {
+    switchView('dashboard');
+  }
 };
 </script>
 
@@ -25,7 +39,7 @@ const switchView = (view) => {
     <div class="max-w-[1920px] mx-auto px-6 h-full flex items-center justify-between">
 
 
-      <div class="flex items-center gap-4 cursor-pointer" @click="switchView('dashboard')">
+      <div class="flex items-center gap-4 cursor-pointer" @click="triggerAdmin">
 
         <div
           class="w-8 h-8 flex items-center justify-center bg-cyan-500/10 border border-cyan-500/50 rounded-sm overflow-hidden">

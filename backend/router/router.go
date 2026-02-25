@@ -37,6 +37,14 @@ func InitRouter() *gin.Engine {
 		api.GET("/milestones", service.GetMilestones)
 		api.GET("/score-milestones", service.GetScoreMilestones)
 
+		admin := api.Group("/admin")
+		admin.Use(service.AdminAuthMiddleware())
+		{
+			admin.GET("/records", service.GetAdminRecords)
+			admin.PUT("/records/:id", service.EditRecord)
+			admin.PUT("/records/:id/undo", service.UndoRecord)
+		}
+
 		api.GET("/messages", service.GetMessages)
 		api.POST("/messages", service.CreateMessage)
 
