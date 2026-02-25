@@ -2,9 +2,9 @@ all:
 	docker compose up -d --build
 
 # --- 變數設定 (方便維護) ---
-GCP_REGION := asia-east1
+GCP_REGION := us-west1
 PROJECT_ID := optical-net-485503-g6
-REPO_NAME  := ddnetone
+REPO_NAME  := ddnetone-free
 APP_NAME   := ddnetone-app
 BASE_URL   := $(GCP_REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPO_NAME)/$(APP_NAME)
 
