@@ -14,7 +14,9 @@ const props = defineProps({
   players: Array,
   progressPercent: String,
   chartData: Object,
-  growthData: Array
+  growthData: Array,
+  milestonesData: Array,
+  scoreMilestonesData: Array
 });
 </script>
 
@@ -26,10 +28,10 @@ const props = defineProps({
 
       <CurrentPointsCard :current-score="summary?.current_score" />
 
-      <MapsProgressCard :completed-maps="summary?.completed_maps" :growth-data="growthData" />
+      <MapsProgressCard :completed-maps="summary?.completed_maps" :growth-data="growthData" :milestones-data="milestonesData" />
 
       <PointsProgressCard :progress-percent="progressPercent" :target-score="summary?.target_score"
-        :growth-data="growthData" />
+        :growth-data="growthData" :score-milestones-data="scoreMilestonesData" />
 
     </div>
 

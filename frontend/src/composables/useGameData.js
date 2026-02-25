@@ -7,6 +7,8 @@ export function useGameData() {
   const players = ref([]);
   const maps = shallowRef([]);
   const growthData = ref([]);
+  const milestonesData = ref([]);
+  const scoreMilestonesData = ref([]);
   // const latestSubmission = ref(null);
 
   // 模擬數據
@@ -34,17 +36,21 @@ export function useGameData() {
   const fetchData = async () => {
     try {
       // 為了避免畫面閃爍，這裡通常不需要清空數據，直接覆蓋即可
-      const [sumRes, playRes, mapRes, growthRes] = await Promise.all([
+      const [sumRes, playRes, mapRes, growthRes, milestonesRes, scoreMilestonesRes] = await Promise.all([
         axios.get(`/api/summary`),
         axios.get(`/api/leaderboard`),
         axios.get(`/api/maps`),
-        axios.get(`/api/growth`)
+        axios.get(`/api/growth`),
+        axios.get(`/api/milestones`),
+        axios.get(`/api/score-milestones`)
       ]);
 
       summary.value = sumRes.data;
       players.value = playRes.data;
       maps.value = mapRes.data;
       growthData.value = growthRes.data;
+      milestonesData.value = milestonesRes.data;
+      scoreMilestonesData.value = scoreMilestonesRes.data;
 
       // 可以在這裡 console.log("Auto Refreshed") 確認有沒有在跑
     } catch (e) {
@@ -117,6 +123,8 @@ export function useGameData() {
     players,
     maps,
     growthData,
+    milestonesData,
+    scoreMilestonesData,
     progressPercent,
     chartData,
     fetchData

@@ -34,6 +34,8 @@ func InitRouter() *gin.Engine {
 		api.GET("/player-options", service.GetPlayerOptions)
 
 		api.GET("/growth", service.GetGrowth)
+		api.GET("/milestones", service.GetMilestones)
+		api.GET("/score-milestones", service.GetScoreMilestones)
 
 		api.GET("/messages", service.GetMessages)
 		api.POST("/messages", service.CreateMessage)

@@ -7,7 +7,8 @@ const props = defineProps({
     type: Number,
     default: 10000
   },
-  growthData: Array // 保留接口給未來使用
+  growthData: Array,
+  scoreMilestonesData: Array // 來自 /api/score-milestones 的完整歷史里程碑資料
 });
 
 const manualLabels = [
@@ -20,34 +21,18 @@ const manualLabels = [
   { score: 5000, text: '2026/01/31 21:00' },
 ];
 
-// 2. 自動計算里程碑 (間隔 1000)
+// 自動計算里程碑 (間隔 1000)，從後端完整歷史資料取得
 const autoMilestones = computed(() => {
-  // 如果沒有歷史資料，就回傳空陣列
-  if (!props.growthData || props.growthData.length === 0) return [];
+  if (!props.scoreMilestonesData || props.scoreMilestonesData.length === 0) return [];
 
-  const results = [];
-  const targetMax = props.targetScore || 10000;
-
-  // 使用 for 迴圈，從 1000 開始，每次加 1000，直到目標分數
-  for (let s = 6000; s <= targetMax; s += 1000) {
-
-    // 【注意】這裡假設 growthData 裡的分數欄位叫 "score"
-    // 如果你的 API 回傳欄位是 "points" 或 "total_score"，請將 d.score 改成對應名稱
-    const match = props.growthData.find(d => d.points >= s);
-
-    if (match) {
-      // 日期格式化邏輯 (YYYY/MM/DD)
-      const timeStr = match.timestamp
-        ? new Date(match.timestamp).toLocaleString('sv-SE').replace(/-/g, '/') : 'UNKNOWN';
-
-      results.push({
-        score: s, // 顯示實際分數
-        text: timeStr// 顯示格式化日期
-      });
-    }
-  }
-
-  return results;
+  return props.scoreMilestonesData
+    .filter(m => m.target >= 6000)
+    .map(m => ({
+      score: m.target,
+      text: m.timestamp
+        ? new Date(m.timestamp).toLocaleString('sv-SE').replace(/-/g, '/')
+        : 'UNKNOWN'
+    }));
 });
 
 // 3. 合併並計算位置

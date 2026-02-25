@@ -6,7 +6,8 @@ const props = defineProps({
     type: Number,
     default: 0
   },
-  growthData: Array // 如果你需要用歷史資料，記得傳入這個
+  growthData: Array,
+  milestonesData: Array // 來自 /api/milestones 的完整歷史里程碑資料
 });
 
 const TARGET_MAPS = 2403;
@@ -19,34 +20,18 @@ const manualMapLabels = ref([
   { count: 400, text: '2026/01/24' },
 ]);
 
-// 2. 自動計算 500 ~ TARGET_MAPS (間隔 100) 的里程碑
+// 自動計算 500 ~ TARGET_MAPS (間隔 100) 的里程碑，從後端完整歷史資料取得
 const autoMilestones = computed(() => {
-  // 檢查資料是否存在
-  if (!props.growthData || props.growthData.length === 0) return [];
+  if (!props.milestonesData || props.milestonesData.length === 0) return [];
 
-  const results = [];
-
-  // 使用 for 迴圈，從 500 開始，每次加 100，直到超過 TARGET_MAPS (2403)
-  for (let target = 500; target <= TARGET_MAPS; target += 100) {
-
-    // 在 growthData 中找到「第一筆」maps 大於等於 target 的資料
-    const match = props.growthData.find(d => d.maps >= target);
-
-    if (match) {
-      // --- 日期格式化邏輯 Start ---
-      const timeStr = match.timestamp
-        ? new Date(match.timestamp).toLocaleString('sv-SE').replace(/-/g, '/') : 'UNKNOWN';
-
-      // --- 日期格式化邏輯 End ---
-
-      results.push({
-        count: match.maps, // 使用當下實際達成的數字 (例如 503)
-        text: timeStr // 格式化後的日期 (例如 2024/10/05)
-      });
-    }
-  }
-
-  return results;
+  return props.milestonesData
+    .filter(m => m.target >= 500)
+    .map(m => ({
+      count: m.target,
+      text: m.timestamp
+        ? new Date(m.timestamp).toLocaleString('sv-SE').replace(/-/g, '/')
+        : 'UNKNOWN'
+    }));
 });
 // 計算百分比
 const mapsPercent = computed(() => {
