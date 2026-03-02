@@ -68,6 +68,11 @@ const triggerAdmin = () => {
             activeView === 'submission' ? 'bg-green-500/20 text-green-300 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'hover:text-white text-gray-500']">
           <span class="text-lg font-bold leading-none">+</span> SUBMISSION
         </button>
+        <button @click="switchView('stats')"
+          :class="['px-6 py-1.5 rounded-md text-sm font-mono transition-all duration-300 flex items-center gap-2',
+            activeView === 'stats' ? 'bg-amber-500/20 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'hover:text-white text-gray-500']">
+          <SparklesIcon class="w-4 h-4" /> STATS
+        </button>
       </div>
       <!-- <button @click="switchView('board')"
       <!--   :class="['px-6 py-1.5 rounded-md text-sm font-mono transition-all duration-300 flex items-center gap-2',
@@ -108,6 +113,11 @@ const triggerAdmin = () => {
           :class="['w-full text-left px-4 py-3 text-sm font-mono rounded-md flex items-center gap-3 transition-colors',
             activeView === 'submission' ? 'bg-green-500/10 text-green-300 border border-green-500/30' : 'text-gray-400 hover:bg-white/5']">
           <span class="w-5 h-5 flex items-center justify-center font-bold text-lg">+</span> SUBMISSION
+        </button>
+        <button @click="switchView('stats')"
+          :class="['w-full text-left px-4 py-3 text-sm font-mono rounded-md flex items-center gap-3 transition-colors',
+            activeView === 'stats' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30' : 'text-gray-400 hover:bg-white/5']">
+          <SparklesIcon class="w-5 h-5" /> STATS
         </button>
       </div>
     </div>

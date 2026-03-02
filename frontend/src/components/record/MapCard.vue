@@ -1,7 +1,6 @@
 <script setup>
 import {
   StarIcon as StarIconOutline,
-
   UserGroupIcon,
   CalendarIcon
 } from '@heroicons/vue/24/outline';
@@ -9,9 +8,7 @@ import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid';
 
 const props = defineProps({
   map: Object
-
 });
-
 
 const getStatusColor = (status) => {
   if (status === 2) return 'text-cyan-400 border-cyan-500/50 bg-cyan-500/10';
@@ -23,11 +20,7 @@ const formatDate = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
+  return date.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
 };
 </script>
 

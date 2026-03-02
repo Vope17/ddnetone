@@ -6,9 +6,12 @@ import DashboardView from './views/DashboardView.vue';
 import RecordsView from './views/RecordsView.vue';
 import SubmissionView from './views/SubmissionView.vue';
 import AdminView from './views/AdminView.vue';
+import StatsView from './views/StatsView.vue';
+import ToastNotification from './components/ToastNotification.vue';
 
 const activeView = ref('dashboard');
-const { summary, players, maps, progressPercent, chartData, fetchData, growthData, milestonesData, scoreMilestonesData } = useGameData();
+const toastRef = ref(null);
+const { summary, players, maps, progressPercent, chartData, fetchData, growthData, milestonesData, scoreMilestonesData } = useGameData(toastRef);
 </script>
 
 <template>
@@ -41,11 +44,16 @@ const { summary, players, maps, progressPercent, chartData, fetchData, growthDat
 
         <SubmissionView v-else-if="activeView === 'submission'" />
 
+        <StatsView v-else-if="activeView === 'stats'"
+          :growth-data="growthData" :summary="summary" :maps="maps" />
+
         <AdminView v-else-if="activeView === 'admin'" />
 
         <!-- <MessageBoardView v-else-if="activeView === 'board'" /> -->
       </transition>
     </main>
+
+    <ToastNotification ref="toastRef" />
   </div>
 </template>
 

@@ -16,8 +16,8 @@ func InitRouter() *gin.Engine {
 
 		AllowAllOrigins: true,
 
-		AllowMethods: []string{"GET", "POST"},
-		AllowHeaders: []string{"Origin", "Content-Type"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders: []string{"Origin", "Content-Type", "X-Admin-Key"},
 	}))
 
 	api := r.Group("/api")
@@ -36,6 +36,7 @@ func InitRouter() *gin.Engine {
 		api.GET("/growth", service.GetGrowth)
 		api.GET("/milestones", service.GetMilestones)
 		api.GET("/score-milestones", service.GetScoreMilestones)
+		api.GET("/daily-activity", service.GetDailyActivity)
 
 		admin := api.Group("/admin")
 		admin.Use(service.AdminAuthMiddleware())
@@ -43,6 +44,9 @@ func InitRouter() *gin.Engine {
 			admin.GET("/records", service.GetAdminRecords)
 			admin.PUT("/records/:id", service.EditRecord)
 			admin.PUT("/records/:id/undo", service.UndoRecord)
+			admin.GET("/players", service.GetAdminPlayers)
+			admin.PUT("/players/:id", service.EditPlayer)
+			admin.DELETE("/players/:id", service.DeletePlayer)
 		}
 
 		api.GET("/messages", service.GetMessages)

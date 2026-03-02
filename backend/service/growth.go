@@ -16,6 +16,39 @@ func GetGrowth(c *gin.Context) {
 	c.JSON(http.StatusOK, growth)
 }
 
+type DailyActivity struct {
+	Date  string `json:"date"`
+	Maps  int    `json:"maps"`
+	Score int    `json:"score"`
+}
+
+// GetDailyActivity 回傳每日完成地圖數與分數增量（過去一年）
+func GetDailyActivity(c *gin.Context) {
+	oneYearAgo := time.Now().AddDate(-1, 0, 0)
+
+	// 取得完成記錄，按日期彙整
+	type row struct {
+		Date  string
+		Maps  int
+		Score int
+	}
+
+	var rows []row
+	db.GetDB().Model(&model.MapRecord{}).
+		Select("DATE(finish_time AT TIME ZONE 'Asia/Taipei') AS date, COUNT(*) AS maps, SUM(score) AS score").
+		Where("status = 2 AND finish_time >= ?", oneYearAgo).
+		Group("DATE(finish_time AT TIME ZONE 'Asia/Taipei')").
+		Order("date asc").
+		Scan(&rows)
+
+	result := make([]DailyActivity, len(rows))
+	for i, r := range rows {
+		result[i] = DailyActivity{Date: r.Date, Maps: r.Maps, Score: r.Score}
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 type MilestoneResult struct {
 	Target    int    `json:"target"`
 	Timestamp string `json:"timestamp"`
@@ -24,20 +57,24 @@ type MilestoneResult struct {
 
 func GetMilestones(c *gin.Context) {
 	const TARGET_MAPS = 2403
-	results := []MilestoneResult{}
 
-	for target := 100; target <= TARGET_MAPS; target += 100 {
-		var record model.GrowthData
-		err := db.GetDB().
-			Where("maps >= ?", target).
-			Order("maps asc, id asc").
-			First(&record).Error
-		if err == nil {
+	// 單次查詢，按 maps asc 排序後線性掃描，避免 N 次查詢
+	var records []model.GrowthData
+	db.GetDB().Order("maps asc, id asc").Find(&records)
+
+	results := []MilestoneResult{}
+	target := 100
+	for _, r := range records {
+		for target <= TARGET_MAPS && r.Maps >= target {
 			results = append(results, MilestoneResult{
 				Target:    target,
-				Timestamp: record.Timestamp,
-				Maps:      record.Maps,
+				Timestamp: r.Timestamp,
+				Maps:      r.Maps,
 			})
+			target += 100
+		}
+		if target > TARGET_MAPS {
+			break
 		}
 	}
 
@@ -46,23 +83,21 @@ func GetMilestones(c *gin.Context) {
 
 func GetScoreMilestones(c *gin.Context) {
 	const SCORE_STEP = 1000
-	const SCORE_MAX = 100000
-	results := []MilestoneResult{}
 
-	for target := SCORE_STEP; target <= SCORE_MAX; target += SCORE_STEP {
-		var record model.GrowthData
-		err := db.GetDB().
-			Where("points >= ?", target).
-			Order("points asc, id asc").
-			First(&record).Error
-		if err == nil {
+	// 單次查詢，按 points asc 排序後線性掃描，避免 N 次查詢
+	var records []model.GrowthData
+	db.GetDB().Order("points asc, id asc").Find(&records)
+
+	results := []MilestoneResult{}
+	target := SCORE_STEP
+	for _, r := range records {
+		for r.Points >= target {
 			results = append(results, MilestoneResult{
 				Target:    target,
-				Timestamp: record.Timestamp,
-				Maps:      record.Points,
+				Timestamp: r.Timestamp,
+				Maps:      r.Points,
 			})
-		} else {
-			break // 超過目前最高分，停止
+			target += SCORE_STEP
 		}
 	}
 

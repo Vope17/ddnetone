@@ -110,6 +110,71 @@ func UndoRecord(c *gin.Context) {
 	c.JSON(http.StatusOK, record)
 }
 
+// GetAdminPlayers 取得所有玩家資訊供管理
+func GetAdminPlayers(c *gin.Context) {
+	var players []model.Player
+	db.GetDB().Order("score_contribution desc").Find(&players)
+	c.JSON(http.StatusOK, players)
+}
+
+type EditPlayerRequest struct {
+	Name              *string  `json:"name"`
+	Role              *string  `json:"role"`
+	ScoreContribution *float64 `json:"score_contrib"`
+	MapCount          *int     `json:"map_count"`
+}
+
+// EditPlayer 修改玩家資訊
+func EditPlayer(c *gin.Context) {
+	id := c.Param("id")
+	var player model.Player
+	if err := db.GetDB().First(&player, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "player not found"})
+		return
+	}
+
+	var req EditPlayerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Name != nil {
+		player.Name = *req.Name
+	}
+	if req.Role != nil {
+		player.Role = *req.Role
+	}
+	if req.ScoreContribution != nil {
+		player.ScoreContribution = *req.ScoreContribution
+	}
+	if req.MapCount != nil {
+		player.MapCount = *req.MapCount
+	}
+
+	if err := db.GetDB().Save(&player).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update player"})
+		return
+	}
+
+	c.JSON(http.StatusOK, player)
+}
+
+// DeletePlayer 刪除玩家
+func DeletePlayer(c *gin.Context) {
+	id := c.Param("id")
+	var player model.Player
+	if err := db.GetDB().First(&player, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "player not found"})
+		return
+	}
+	if err := db.GetDB().Delete(&player).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete player"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "player deleted"})
+}
+
 // reversePlayerStats 從玩家積分中扣除指定分數
 func reversePlayerStats(runnerNamesRaw string, score int) {
 	if runnerNamesRaw == "" || score <= 0 {

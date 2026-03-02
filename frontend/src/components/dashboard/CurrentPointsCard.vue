@@ -1,13 +1,16 @@
 <script setup>
+import { toRef } from 'vue';
 import { SparklesIcon } from '@heroicons/vue/24/outline';
+import { useCountup } from '../../composables/useCountup';
 
-
-defineProps({
+const props = defineProps({
   currentScore: {
     type: Number,
     default: 0
   }
 });
+
+const animatedScore = useCountup(toRef(props, 'currentScore'));
 </script>
 
 <template>
@@ -19,7 +22,7 @@ defineProps({
       <span class="w-1 h-1 bg-cyan-500"></span> CURRENT_POINTS
     </div>
     <div class="text-3xl font-bold text-white font-mono tracking-tight">
-      {{ currentScore.toLocaleString() }}
+      {{ animatedScore.toLocaleString() }}
     </div>
 
     <div class="mt-2 w-full bg-gray-800 h-1 rounded-full overflow-hidden">

@@ -2,13 +2,15 @@
 import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue';
 import axios from 'axios';
 
-export function useGameData() {
+export function useGameData(toastRef = null) {
   const summary = ref({ current_score: 0, target_score: 10000, completed_maps: 0 });
   const players = ref([]);
   const maps = shallowRef([]);
   const growthData = ref([]);
   const milestonesData = ref([]);
   const scoreMilestonesData = ref([]);
+  let prevCompletedMaps = -1;
+  let prevScore = -1;
   // const latestSubmission = ref(null);
 
   // 模擬數據
@@ -51,6 +53,24 @@ export function useGameData() {
       growthData.value = growthRes.data;
       milestonesData.value = milestonesRes.data;
       scoreMilestonesData.value = scoreMilestonesRes.data;
+
+      // 偵測新完成地圖，觸發 Toast
+      const newMaps = sumRes.data.completed_maps;
+      const newScore = sumRes.data.current_score;
+      if (prevCompletedMaps >= 0 && newMaps > prevCompletedMaps && toastRef?.value) {
+        const latestGrowth = growthRes.data[growthRes.data.length - 1];
+        toastRef.value.addToast({
+          type: 'success',
+          title: latestGrowth?.map_name
+            ? `${latestGrowth.map_name}`
+            : `MAPS: ${newMaps}`,
+          subtitle: latestGrowth?.runner
+            ? `BY ${latestGrowth.runner}  +${latestGrowth.map_points ?? '?'} PTS`
+            : `+${newScore - prevScore} PTS`
+        });
+      }
+      prevCompletedMaps = newMaps;
+      prevScore = newScore;
 
       // 可以在這裡 console.log("Auto Refreshed") 確認有沒有在跑
     } catch (e) {

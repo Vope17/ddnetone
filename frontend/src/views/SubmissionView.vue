@@ -11,8 +11,8 @@ import StatusButton from '../components/submission/StatusButton.vue';
 
 const mapInputRef = ref(null);
 
-// 難度列表
 const difficulties = [
+  'ALL',
   'NOVICE', 'MODERATE', 'BRUTAL', 'INSANE',
   'DUMMY', 'SOLO', 'RACE', 'OLDSCHOOL',
   'DDMAX.EASY', 'DDMAX.NEXT', 'DDMAX.PRO', 'DDMAX.NUT',
@@ -21,7 +21,7 @@ const difficulties = [
 
 // 表單資料
 const form = ref({
-  difficulty: 'INSANE',
+  difficulty: 'ALL',
   map_name: '',
   runner: '',
   score: null,
@@ -33,12 +33,14 @@ const form = ref({
 // UI 狀態
 const status = ref('idle');
 
-// 當子組件選擇了地圖，回填分數
+// 當子組件選擇了地圖，回填分數並記住實際難度
+const selectedMapDifficulty = ref('');
 const handleMapSelect = (map) => {
   const autoScore = map.points || map.score;
   if (autoScore > 0) {
     form.value.score = autoScore;
   }
+  selectedMapDifficulty.value = map.difficulty || '';
 };
 
 // 提交邏輯
@@ -50,12 +52,16 @@ const submitForm = async () => {
     alert("請填寫完整資訊");
     return;
   }
+  if (form.value.difficulty === 'ALL' && !selectedMapDifficulty.value) {
+    alert("請從下拉選單選擇地圖");
+    return;
+  }
 
   status.value = 'submitting';
 
   try {
     const payload = {
-      difficulty: form.value.difficulty,
+      difficulty: form.value.difficulty === 'ALL' ? selectedMapDifficulty.value : form.value.difficulty,
       map_name: form.value.map_name,
       runner: form.value.runner,
       score: form.value.score,
@@ -73,8 +79,8 @@ const submitForm = async () => {
     form.value.score = null;
     form.value.note = '';
     form.value.isWip = false;
-
     form.value.hasDummy = false;
+    selectedMapDifficulty.value = '';
 
     if (mapInputRef.value) {
       mapInputRef.value.refresh();

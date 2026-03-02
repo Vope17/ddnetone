@@ -24,9 +24,13 @@ func GetMaps(c *gin.Context) {
 func GetMapOptions(c *gin.Context) {
 	difficulty := c.Query("difficulty")
 	var maps []model.MapRecord
-	db.GetDB().Where("difficulty = ? AND status != 2", difficulty).
-		Order("map_name asc").
-		Find(&maps)
+	q := db.GetDB()
+	if difficulty != "" && difficulty != "ALL" {
+		q = q.Where("difficulty = ? AND status != 2", difficulty)
+	} else {
+		q = q.Where("status != 2")
+	}
+	q.Order("map_name asc").Find(&maps)
 	c.JSON(http.StatusOK, maps)
 }
 
