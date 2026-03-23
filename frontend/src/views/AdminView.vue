@@ -15,7 +15,7 @@ const actionStatus = ref({}); // { [id]: 'loading' | 'done' | 'error' }
 
 const activeTab = ref('records'); // 'records' | 'players'
 const editingPlayerId = ref(null);
-const editPlayerForm = ref({ name: '', role: '', score_contrib: 0, map_count: 0 });
+const editPlayerForm = ref({ name: '', role: '' });
 const playerActionStatus = ref({});
 const playerSearch = ref('');
 
@@ -106,8 +106,6 @@ const startEditPlayer = (player) => {
   editPlayerForm.value = {
     name: player.name || '',
     role: player.role || '',
-    score_contrib: player.score_contrib,
-    map_count: player.map_count,
   };
 };
 
@@ -316,8 +314,6 @@ const filteredPlayers = computed(() => {
                 <th class="text-left py-2 px-2 w-8">#</th>
                 <th class="text-left py-2 px-2">NAME</th>
                 <th class="text-left py-2 px-2">ROLE</th>
-                <th class="text-left py-2 px-2">SCORE</th>
-                <th class="text-left py-2 px-2">MAPS</th>
                 <th class="text-right py-2 px-2">OPS</th>
               </tr>
             </thead>
@@ -330,8 +326,6 @@ const filteredPlayers = computed(() => {
                   <td class="py-1.5 px-2 text-gray-600">{{ p.id }}</td>
                   <td class="py-1.5 px-2 text-cyan-400">{{ p.name }}</td>
                   <td class="py-1.5 px-2 text-yellow-400/80">{{ p.role || '-' }}</td>
-                  <td class="py-1.5 px-2 text-green-400">{{ p.score_contrib }}</td>
-                  <td class="py-1.5 px-2 text-gray-400">{{ p.map_count }}</td>
                   <td class="py-1.5 px-2 text-right">
                     <button @click="startEditPlayer(p)"
                       class="text-violet-400 hover:text-violet-200 px-2 py-0.5 border border-violet-400/20 hover:border-violet-400/60 transition-colors mr-1">
@@ -353,14 +347,6 @@ const filteredPlayers = computed(() => {
                   <td class="py-1.5 px-2">
                     <input v-model="editPlayerForm.role"
                       class="bg-black border border-violet-500/30 text-yellow-300 font-mono text-xs px-2 py-0.5 w-full outline-none focus:border-violet-400" />
-                  </td>
-                  <td class="py-1.5 px-2">
-                    <input v-model.number="editPlayerForm.score_contrib" type="number" step="0.01"
-                      class="bg-black border border-violet-500/30 text-green-300 font-mono text-xs px-2 py-0.5 w-24 outline-none focus:border-violet-400" />
-                  </td>
-                  <td class="py-1.5 px-2">
-                    <input v-model.number="editPlayerForm.map_count" type="number"
-                      class="bg-black border border-violet-500/30 text-gray-300 font-mono text-xs px-2 py-0.5 w-16 outline-none focus:border-violet-400" />
                   </td>
                   <td class="py-1.5 px-2 text-right whitespace-nowrap">
                     <button @click="saveEditPlayer(p.id)"

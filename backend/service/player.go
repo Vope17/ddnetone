@@ -2,50 +2,57 @@ package service
 
 import (
 	"net/http"
+	"sort"
 
 	"DDNETONE/db"
 	"DDNETONE/model"
-	"github.com/gin-gonic/gin"
-
 	"DDNETONE/utils"
+	"github.com/gin-gonic/gin"
 )
 
 func GetLeaderboard(c *gin.Context) {
-	var players []model.Player
-	db.GetDB().Order("score_contribution desc").Find(&players)
-	c.JSON(http.StatusOK, players)
-}
-
-// UpdatePlayerStats 更新跑者積分 (內部呼叫用)
-func UpdatePlayerStats(runnerNamesRaw string, score int) {
-	if runnerNamesRaw == "" || score <= 0 {
+	// 從 map_records 聚合，在 Go 層解析多人 runner
+	var records []model.MapRecord
+	if err := db.GetDB().Where("status = 2 AND score > 0").Find(&records).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "無法取得記錄"})
 		return
 	}
 
-	names := utils.ParseRunnerNames(runnerNamesRaw)
-	database := db.GetDB()
-
-	for _, runnerName := range names {
-		var player model.Player
-		result := database.Where("name = ?", runnerName).First(&player)
-
-		if result.Error == nil {
-			player.ScoreContribution += float64(score)
-			player.MapCount += 1
-			database.Save(&player)
-		} else {
-			newPlayer := model.Player{
-
-				Name: runnerName,
-
-				Role:              "PLAYER",
-				ScoreContribution: float64(score),
-				MapCount:          1,
-				ContributionRate:  0,
-			}
-			database.Create(&newPlayer)
+	scoreMap := make(map[string]float64)
+	countMap := make(map[string]int)
+	for _, r := range records {
+		for _, name := range utils.ParseRunnerNames(r.Runner) {
+			scoreMap[name] += float64(r.Score)
+			countMap[name]++
 		}
 	}
+
+	// 取得所有 Player 用於 role 查找
+	var players []model.Player
+	db.GetDB().Find(&players)
+	roleMap := make(map[string]string)
+	idMap := make(map[string]uint)
+	for _, p := range players {
+		roleMap[p.Name] = p.Role
+		idMap[p.Name] = p.ID
+	}
+
+	var result []model.PlayerStats
+	for name, score := range scoreMap {
+		result = append(result, model.PlayerStats{
+			ID:                idMap[name],
+			Name:              name,
+			Role:              roleMap[name],
+			ScoreContribution: score,
+			MapCount:          countMap[name],
+		})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ScoreContribution > result[j].ScoreContribution
+	})
+
+	c.JSON(http.StatusOK, result)
 }
 
 func GetPlayerOptions(c *gin.Context) {
@@ -55,13 +62,12 @@ func GetPlayerOptions(c *gin.Context) {
 		Model(&model.Player{}).
 		Distinct("name").
 		Order("name ASC").
-		Pluck("name", &names).Error // 抓取 name 欄位值並存入字串陣列
+		Pluck("name", &names).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "無法獲取玩家列表"})
 		return
 	}
 
-	// 回傳單純的字串陣列，符合前端 PlayerSearchInput 的需求
 	c.JSON(http.StatusOK, names)
 }

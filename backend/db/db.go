@@ -40,6 +40,14 @@ func Init() {
 		&model.Message{},
 	)
 
+	// 移除 players 表的舊積分欄位（如已存在）
+	migrator := DB.Migrator()
+	for _, col := range []string{"score_contribution", "map_count", "contribution_rate"} {
+		if migrator.HasColumn(&model.Player{}, col) {
+			migrator.DropColumn(&model.Player{}, col)
+		}
+	}
+
 	log.Println("Database connected and migrated.")
 }
 

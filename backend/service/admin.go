@@ -6,7 +6,6 @@ import (
 
 	"DDNETONE/db"
 	"DDNETONE/model"
-	"DDNETONE/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,7 +33,7 @@ type EditRecordRequest struct {
 	Runner *string `json:"runner"`
 }
 
-// EditRecord 修改 note 或 runner（runner 改變時調整玩家積分）
+// EditRecord 修改 note 或 runner
 func EditRecord(c *gin.Context) {
 	id := c.Param("id")
 	var record model.MapRecord
@@ -55,11 +54,7 @@ func EditRecord(c *gin.Context) {
 		record.Note = *req.Note
 	}
 
-	if req.Runner != nil && *req.Runner != record.Runner {
-		// 從舊 runner 扣分
-		reversePlayerStats(record.Runner, record.Score)
-		// 給新 runner 加分
-		UpdatePlayerStats(*req.Runner, record.Score)
+	if req.Runner != nil {
 		record.Runner = *req.Runner
 	}
 
@@ -87,10 +82,7 @@ func UndoRecord(c *gin.Context) {
 
 	database := db.GetDB()
 
-	// 反轉玩家積分
-	reversePlayerStats(record.Runner, record.Score)
-
-	// 刪除對應的 growth_data 快照（由此地圖完成所觸發的）
+	// 刪除對應的 growth_data 快照
 	database.Where("map_name = ? AND runner = ?", record.MapName, record.Runner).
 		Delete(&model.GrowthData{})
 
@@ -118,10 +110,8 @@ func GetAdminPlayers(c *gin.Context) {
 }
 
 type EditPlayerRequest struct {
-	Name              *string  `json:"name"`
-	Role              *string  `json:"role"`
-	ScoreContribution *float64 `json:"score_contrib"`
-	MapCount          *int     `json:"map_count"`
+	Name *string `json:"name"`
+	Role *string `json:"role"`
 }
 
 // EditPlayer 修改玩家資訊
@@ -145,12 +135,6 @@ func EditPlayer(c *gin.Context) {
 	if req.Role != nil {
 		player.Role = *req.Role
 	}
-	if req.ScoreContribution != nil {
-		player.ScoreContribution = *req.ScoreContribution
-	}
-	if req.MapCount != nil {
-		player.MapCount = *req.MapCount
-	}
 
 	if err := db.GetDB().Save(&player).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update player"})
@@ -173,30 +157,4 @@ func DeletePlayer(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "player deleted"})
-}
-
-// reversePlayerStats 從玩家積分中扣除指定分數
-func reversePlayerStats(runnerNamesRaw string, score int) {
-	if runnerNamesRaw == "" || score <= 0 {
-		return
-	}
-
-	names := utils.ParseRunnerNames(runnerNamesRaw)
-	gormDB := db.GetDB()
-
-	for _, name := range names {
-		var player model.Player
-		if err := gormDB.Where("name = ?", name).First(&player).Error; err != nil {
-			continue
-		}
-		player.ScoreContribution -= float64(score)
-		if player.ScoreContribution < 0 {
-			player.ScoreContribution = 0
-		}
-		player.MapCount -= 1
-		if player.MapCount < 0 {
-			player.MapCount = 0
-		}
-		gormDB.Save(&player)
-	}
 }

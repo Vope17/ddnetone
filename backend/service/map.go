@@ -56,13 +56,6 @@ func CreateRecord(c *gin.Context) {
 		existingRecord.HasDummy = newRecord.HasDummy
 		existingRecord.Score = newRecord.Score
 
-		if existingRecord.Status == 2 {
-			UpdatePlayerStats(existingRecord.Runner, existingRecord.Score)
-		} else {
-			existingRecord.Score = 0
-			existingRecord.HasDummy = false
-		}
-
 		if err := database.Save(&existingRecord).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update record"})
 			return
@@ -79,15 +72,6 @@ func CreateRecord(c *gin.Context) {
 		if err := database.Create(&newRecord).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create record"})
 			return
-		}
-
-		if newRecord.Status == 2 {
-			UpdatePlayerStats(newRecord.Runner, newRecord.Score)
-		}
-
-		if newRecord.Score > 0 || newRecord.Status == 2 {
-			newRecord.FinishTime = &now
-			// 因為 BeforeSave 可能只有在 Save 時觸發較完整，這裡手動補強或依賴 GORM hooks
 		}
 
 		UpdateGlobalSummary()
