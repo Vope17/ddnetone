@@ -44,9 +44,7 @@ func InitRouter() *gin.Engine {
 			admin.GET("/records", service.GetAdminRecords)
 			admin.PUT("/records/:id", service.EditRecord)
 			admin.PUT("/records/:id/undo", service.UndoRecord)
-			admin.GET("/players", service.GetAdminPlayers)
-			admin.PUT("/players/:id", service.EditPlayer)
-			admin.DELETE("/players/:id", service.DeletePlayer)
+			admin.POST("/maps", service.CreateAdminMap)
 		}
 
 		api.GET("/messages", service.GetMessages)

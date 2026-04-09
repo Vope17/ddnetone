@@ -6,18 +6,24 @@ const adminKey = ref('');
 const isAuthenticated = ref(false);
 const authError = ref('');
 const records = ref([]);
-const players = ref([]);
 const loading = ref(false);
 const searchQuery = ref('');
 const editingId = ref(null);
 const editForm = ref({ note: '', runner: '' });
-const actionStatus = ref({}); // { [id]: 'loading' | 'done' | 'error' }
+const actionStatus = ref({});
 
-const activeTab = ref('records'); // 'records' | 'players'
-const editingPlayerId = ref(null);
-const editPlayerForm = ref({ name: '', role: '' });
-const playerActionStatus = ref({});
-const playerSearch = ref('');
+const activeTab = ref('records'); // 'records' | 'maps'
+
+const mapDifficulties = [
+  'NOVICE', 'MODERATE', 'BRUTAL', 'INSANE',
+  'DUMMY', 'SOLO', 'RACE', 'OLDSCHOOL',
+  'DDMAX.EASY', 'DDMAX.NEXT', 'DDMAX.PRO', 'DDMAX.NUT',
+  'EVENT', 'FUN'
+];
+
+const mapForm = ref({ map_name: '', difficulty: 'NOVICE', points: 0, stars: 0 });
+const mapStatus = ref('idle'); // 'idle' | 'loading' | 'done' | 'error'
+const mapError = ref('');
 
 const login = async () => {
   try {
@@ -44,23 +50,8 @@ const fetchRecords = async () => {
   }
 };
 
-const fetchPlayers = async () => {
-  loading.value = true;
-  try {
-    const res = await axios.get('/api/admin/players', {
-      headers: { 'X-Admin-Key': adminKey.value }
-    });
-    players.value = res.data;
-  } finally {
-    loading.value = false;
-  }
-};
-
-const switchTab = async (tab) => {
+const switchTab = (tab) => {
   activeTab.value = tab;
-  if (tab === 'players' && players.value.length === 0) {
-    await fetchPlayers();
-  }
 };
 
 const startEdit = (record) => {
@@ -101,44 +92,18 @@ const undoRecord = async (record) => {
   }
 };
 
-const startEditPlayer = (player) => {
-  editingPlayerId.value = player.id;
-  editPlayerForm.value = {
-    name: player.name || '',
-    role: player.role || '',
-  };
-};
-
-const cancelEditPlayer = () => {
-  editingPlayerId.value = null;
-};
-
-const saveEditPlayer = async (id) => {
-  playerActionStatus.value[id] = 'loading';
+const createMap = async () => {
+  mapStatus.value = 'loading';
+  mapError.value = '';
   try {
-    const res = await axios.put(`/api/admin/players/${id}`, editPlayerForm.value, {
+    await axios.post('/api/admin/maps', mapForm.value, {
       headers: { 'X-Admin-Key': adminKey.value }
     });
-    const idx = players.value.findIndex(p => p.id === id);
-    if (idx !== -1) players.value[idx] = res.data;
-    editingPlayerId.value = null;
-    playerActionStatus.value[id] = 'done';
-  } catch {
-    playerActionStatus.value[id] = 'error';
-  }
-};
-
-const deletePlayer = async (player) => {
-  if (!confirm(`確定要刪除玩家 [${player.name}]？\n此操作無法復原。`)) return;
-  playerActionStatus.value[player.id] = 'loading';
-  try {
-    await axios.delete(`/api/admin/players/${player.id}`, {
-      headers: { 'X-Admin-Key': adminKey.value }
-    });
-    players.value = players.value.filter(p => p.id !== player.id);
-    playerActionStatus.value[player.id] = 'done';
-  } catch {
-    playerActionStatus.value[player.id] = 'error';
+    mapStatus.value = 'done';
+    mapForm.value = { map_name: '', difficulty: 'NOVICE', points: 0, stars: 0 };
+  } catch (err) {
+    mapStatus.value = 'error';
+    mapError.value = err.response?.data?.error || '新增失敗';
   }
 };
 
@@ -149,15 +114,6 @@ const filtered = computed(() => {
     r.map_name?.toLowerCase().includes(q) ||
     r.runner?.toLowerCase().includes(q) ||
     r.note?.toLowerCase().includes(q)
-  );
-});
-
-const filteredPlayers = computed(() => {
-  if (!playerSearch.value) return players.value;
-  const q = playerSearch.value.toLowerCase();
-  return players.value.filter(p =>
-    p.name?.toLowerCase().includes(q) ||
-    p.role?.toLowerCase().includes(q)
   );
 });
 </script>
@@ -194,10 +150,10 @@ const filteredPlayers = computed(() => {
           RECORDS
         </button>
         <button
-          @click="switchTab('players')"
+          @click="switchTab('maps')"
           class="font-mono text-xs px-4 py-2 transition-colors"
-          :class="activeTab === 'players' ? 'text-red-400 border-b-2 border-red-500/60' : 'text-gray-500 hover:text-gray-300'">
-          PLAYERS
+          :class="activeTab === 'maps' ? 'text-red-400 border-b-2 border-red-500/60' : 'text-gray-500 hover:text-gray-300'">
+          MAPS
         </button>
       </div>
 
@@ -290,78 +246,54 @@ const filteredPlayers = computed(() => {
         </div>
       </template>
 
-      <!-- Players Tab -->
-      <template v-if="activeTab === 'players'">
-        <div class="flex items-center justify-between flex-shrink-0">
-          <div class="text-xs font-mono text-red-500/70 tracking-widest">PLAYERS // {{ players.length }}</div>
-          <div class="flex items-center gap-2">
-            <input
-              v-model="playerSearch"
-              placeholder="SEARCH..."
-              class="bg-black border border-white/10 text-white font-mono text-xs px-3 py-1.5 outline-none focus:border-red-500/30 w-40"
-            />
-            <button @click="fetchPlayers"
-              class="bg-white/5 border border-white/10 text-gray-400 font-mono text-xs px-3 py-1.5 hover:text-white transition-colors">
-              REFRESH
-            </button>
-          </div>
-        </div>
-
+      <!-- Maps Tab -->
+      <template v-if="activeTab === 'maps'">
+        <div class="text-xs font-mono text-red-500/70 tracking-widest flex-shrink-0">ADD MAP</div>
         <div class="flex-1 overflow-y-auto custom-scrollbar">
-          <table class="w-full text-xs font-mono border-collapse">
-            <thead class="sticky top-0 bg-[#050505] z-10">
-              <tr class="text-gray-600 border-b border-white/5">
-                <th class="text-left py-2 px-2 w-8">#</th>
-                <th class="text-left py-2 px-2">NAME</th>
-                <th class="text-left py-2 px-2">ROLE</th>
-                <th class="text-right py-2 px-2">OPS</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-for="p in filteredPlayers" :key="p.id">
-                <!-- 正常行 -->
-                <tr v-if="editingPlayerId !== p.id"
-                  class="border-b border-white/5 hover:bg-white/2 transition-colors"
-                  :class="{ 'opacity-50': playerActionStatus[p.id] === 'loading' }">
-                  <td class="py-1.5 px-2 text-gray-600">{{ p.id }}</td>
-                  <td class="py-1.5 px-2 text-cyan-400">{{ p.name }}</td>
-                  <td class="py-1.5 px-2 text-yellow-400/80">{{ p.role || '-' }}</td>
-                  <td class="py-1.5 px-2 text-right">
-                    <button @click="startEditPlayer(p)"
-                      class="text-violet-400 hover:text-violet-200 px-2 py-0.5 border border-violet-400/20 hover:border-violet-400/60 transition-colors mr-1">
-                      EDIT
-                    </button>
-                    <button @click="deletePlayer(p)"
-                      class="text-red-400 hover:text-red-200 px-2 py-0.5 border border-red-400/20 hover:border-red-400/60 transition-colors">
-                      DEL
-                    </button>
-                  </td>
-                </tr>
-                <!-- 編輯行 -->
-                <tr v-else class="border-b border-violet-500/20 bg-violet-900/10">
-                  <td class="py-1.5 px-2 text-gray-600">{{ p.id }}</td>
-                  <td class="py-1.5 px-2">
-                    <input v-model="editPlayerForm.name"
-                      class="bg-black border border-violet-500/30 text-cyan-300 font-mono text-xs px-2 py-0.5 w-full outline-none focus:border-violet-400" />
-                  </td>
-                  <td class="py-1.5 px-2">
-                    <input v-model="editPlayerForm.role"
-                      class="bg-black border border-violet-500/30 text-yellow-300 font-mono text-xs px-2 py-0.5 w-full outline-none focus:border-violet-400" />
-                  </td>
-                  <td class="py-1.5 px-2 text-right whitespace-nowrap">
-                    <button @click="saveEditPlayer(p.id)"
-                      class="text-green-400 hover:text-green-200 px-2 py-0.5 border border-green-400/20 hover:border-green-400/60 transition-colors mr-1">
-                      SAVE
-                    </button>
-                    <button @click="cancelEditPlayer"
-                      class="text-gray-400 hover:text-gray-200 px-2 py-0.5 border border-gray-400/20 hover:border-gray-400/60 transition-colors">
-                      CANCEL
-                    </button>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+          <div class="bg-gray-900/40 border border-white/10 p-4 flex flex-col gap-3 max-w-md">
+            <div class="flex flex-col gap-1">
+              <label class="text-gray-500 font-mono text-xs">MAP NAME</label>
+              <input
+                v-model="mapForm.map_name"
+                placeholder="map name..."
+                class="bg-black border border-white/20 text-white font-mono text-xs px-3 py-2 outline-none focus:border-red-500/50 w-full"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-gray-500 font-mono text-xs">DIFFICULTY</label>
+              <select
+                v-model="mapForm.difficulty"
+                class="bg-black border border-white/20 text-white font-mono text-xs px-3 py-2 outline-none focus:border-red-500/50 w-full">
+                <option v-for="d in mapDifficulties" :key="d" :value="d">{{ d }}</option>
+              </select>
+            </div>
+            <div class="flex gap-3">
+              <div class="flex flex-col gap-1 flex-1">
+                <label class="text-gray-500 font-mono text-xs">POINTS</label>
+                <input
+                  v-model.number="mapForm.points"
+                  type="number" min="0"
+                  class="bg-black border border-white/20 text-white font-mono text-xs px-3 py-2 outline-none focus:border-red-500/50 w-full"
+                />
+              </div>
+              <div class="flex flex-col gap-1 flex-1">
+                <label class="text-gray-500 font-mono text-xs">STARS (0-5)</label>
+                <input
+                  v-model.number="mapForm.stars"
+                  type="number" min="0" max="5"
+                  class="bg-black border border-white/20 text-white font-mono text-xs px-3 py-2 outline-none focus:border-red-500/50 w-full"
+                />
+              </div>
+            </div>
+            <button
+              @click="createMap"
+              :disabled="mapStatus === 'loading' || !mapForm.map_name"
+              class="bg-red-900/40 border border-red-500/40 text-red-300 font-mono text-xs px-4 py-2 hover:bg-red-900/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              {{ mapStatus === 'loading' ? 'ADDING...' : 'ADD MAP' }}
+            </button>
+            <p v-if="mapStatus === 'done'" class="text-green-400 font-mono text-xs">✓ 地圖新增成功</p>
+            <p v-if="mapStatus === 'error'" class="text-red-400 font-mono text-xs">✗ {{ mapError }}</p>
+          </div>
         </div>
       </template>
     </div>

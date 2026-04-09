@@ -102,59 +102,40 @@ func UndoRecord(c *gin.Context) {
 	c.JSON(http.StatusOK, record)
 }
 
-// GetAdminPlayers 取得所有玩家資訊供管理
-func GetAdminPlayers(c *gin.Context) {
-	var players []model.Player
-	db.GetDB().Order("score_contribution desc").Find(&players)
-	c.JSON(http.StatusOK, players)
+type CreateAdminMapRequest struct {
+	MapName    string `json:"map_name" binding:"required"`
+	Difficulty string `json:"difficulty" binding:"required"`
+	Points     int    `json:"points"`
+	Stars      int    `json:"stars"`
 }
 
-type EditPlayerRequest struct {
-	Name *string `json:"name"`
-	Role *string `json:"role"`
-}
-
-// EditPlayer 修改玩家資訊
-func EditPlayer(c *gin.Context) {
-	id := c.Param("id")
-	var player model.Player
-	if err := db.GetDB().First(&player, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "player not found"})
-		return
-	}
-
-	var req EditPlayerRequest
+// CreateAdminMap 新增一筆地圖記錄（status=0，未完成）
+func CreateAdminMap(c *gin.Context) {
+	var req CreateAdminMapRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if req.Name != nil {
-		player.Name = *req.Name
-	}
-	if req.Role != nil {
-		player.Role = *req.Role
-	}
-
-	if err := db.GetDB().Save(&player).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update player"})
+	database := db.GetDB()
+	var existing model.MapRecord
+	if err := database.Where("map_name = ? AND difficulty = ?", req.MapName, req.Difficulty).First(&existing).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "map already exists"})
 		return
 	}
 
-	c.JSON(http.StatusOK, player)
-}
+	record := model.MapRecord{
+		MapName:    req.MapName,
+		Difficulty: req.Difficulty,
+		Points:     req.Points,
+		Stars:      req.Stars,
+		Status:     0,
+	}
 
-// DeletePlayer 刪除玩家
-func DeletePlayer(c *gin.Context) {
-	id := c.Param("id")
-	var player model.Player
-	if err := db.GetDB().First(&player, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "player not found"})
+	if err := database.Create(&record).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create map"})
 		return
 	}
-	if err := db.GetDB().Delete(&player).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete player"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "player deleted"})
+
+	c.JSON(http.StatusCreated, record)
 }
