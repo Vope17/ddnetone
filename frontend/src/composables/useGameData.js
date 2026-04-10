@@ -11,6 +11,7 @@ export function useGameData(toastRef = null) {
   const scoreMilestonesData = ref([]);
   let prevCompletedMaps = -1;
   let prevScore = -1;
+  let prevLoadedMaps = -1;
   // const latestSubmission = ref(null);
 
   // 模擬數據
@@ -57,6 +58,7 @@ export function useGameData(toastRef = null) {
       // 偵測新完成地圖，觸發 Toast
       const newMaps = sumRes.data.completed_maps;
       const newScore = sumRes.data.current_score;
+      const newLoadedMaps = sumRes.data.loaded_maps ?? 0;
       if (prevCompletedMaps >= 0 && newMaps > prevCompletedMaps && toastRef?.value) {
         const latestGrowth = growthRes.data[growthRes.data.length - 1];
         toastRef.value.addToast({
@@ -69,8 +71,19 @@ export function useGameData(toastRef = null) {
             : `+${newScore - prevScore} PTS`
         });
       }
+      if (prevLoadedMaps >= 0 && newLoadedMaps > prevLoadedMaps && toastRef?.value) {
+        const latestGrowth = growthRes.data[growthRes.data.length - 1];
+        toastRef.value.addToast({
+          type: 'info',
+          title: latestGrowth?.map_name ? `LOADED: ${latestGrowth.map_name}` : 'MAP LOADED',
+          subtitle: latestGrowth?.map_points != null
+            ? `${Math.abs(latestGrowth.map_points)} PTS DEDUCTED`
+            : `SCORE: ${newScore}`
+        });
+      }
       prevCompletedMaps = newMaps;
       prevScore = newScore;
+      prevLoadedMaps = newLoadedMaps;
 
       // 可以在這裡 console.log("Auto Refreshed") 確認有沒有在跑
     } catch (e) {

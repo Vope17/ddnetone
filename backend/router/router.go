@@ -30,6 +30,8 @@ func InitRouter() *gin.Engine {
 		api.GET("/maps", service.GetMaps)
 		api.POST("/records", service.CreateRecord)
 		api.GET("/map-options", service.GetMapOptions)
+		api.GET("/load-options", service.GetLoadOptions)
+		api.POST("/records/load", service.LoadRecord)
 
 		api.GET("/player-options", service.GetPlayerOptions)
 
@@ -44,6 +46,7 @@ func InitRouter() *gin.Engine {
 			admin.GET("/records", service.GetAdminRecords)
 			admin.PUT("/records/:id", service.EditRecord)
 			admin.PUT("/records/:id/undo", service.UndoRecord)
+			admin.PUT("/records/:id/unload", service.UnloadRecord)
 			admin.POST("/maps", service.CreateAdminMap)
 		}
 

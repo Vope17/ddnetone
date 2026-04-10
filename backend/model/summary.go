@@ -7,5 +7,6 @@ type Summary struct {
 	CurrentScore  int       `json:"current_score"`
 	TargetScore   int       `json:"target_score"`
 	CompletedMaps int       `json:"completed_maps"`
+	LoadedMaps    int       `json:"loaded_maps"`
 	LastUpdate    time.Time `json:"last_update"`
 }

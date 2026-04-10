@@ -14,7 +14,7 @@ type MapRecord struct {
 	Points     int        `json:"points"`
 	Stars      int        `json:"stars"`
 	Note       string     `json:"note"`
-	Status     int        `json:"status"` // 0:未完成, 1:進行中, 2:已完成
+	Status     int        `json:"status"` // 0:未完成, 1:進行中, 2:已完成, 3:已加載
 	FinishTime *time.Time `gorm:"column:finish_time" json:"finish_time"`
 
 	HasDummy bool `gorm:"column:has_dummy" json:"has_dummy"`

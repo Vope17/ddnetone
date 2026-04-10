@@ -11,6 +11,7 @@ const props = defineProps({
 });
 
 const getStatusColor = (status) => {
+  if (status === 3) return 'text-amber-400 border-amber-500/50 bg-amber-500/10';
   if (status === 2) return 'text-cyan-400 border-cyan-500/50 bg-cyan-500/10';
   if (status === 1) return 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10';
   return 'text-gray-500 border-white/10 bg-black/40';
@@ -35,7 +36,7 @@ const formatDate = (dateStr) => {
         </template>
       </div>
       <div class="text-right">
-        <span :class="['font-mono text-xl font-bold', map.status === 2 ? 'text-white' : 'text-gray-600']">
+        <span :class="['font-mono text-xl font-bold', map.status === 2 ? 'text-white' : map.status === 3 ? 'text-amber-300' : 'text-gray-600']">
           {{ map.points }}
         </span>
         <span class="text-[9px] text-gray-600 ml-1">PTS</span>
@@ -47,7 +48,7 @@ const formatDate = (dateStr) => {
       <span class="text-[9px] font-mono border border-purple-500/30 px-1 rounded bg-purple-500/10">DUMMY</span>
     </div>
 
-    <h4 :class="['font-bold text-md truncate mb-1', map.status === 2 ? 'text-white' : 'text-gray-400']">
+    <h4 :class="['font-bold text-md truncate mb-1', map.status === 2 ? 'text-white' : map.status === 3 ? 'text-amber-200' : 'text-gray-400']">
       {{ map.map_name }}
     </h4>
 

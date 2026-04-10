@@ -81,7 +81,55 @@ func CreateRecord(c *gin.Context) {
 	}
 }
 
-// 輔助函式：取得當前數據並觸發快照
+func GetLoadOptions(c *gin.Context) {
+	var maps []model.MapRecord
+	db.GetDB().Where("status = 2").Order("map_name asc").Find(&maps)
+	c.JSON(http.StatusOK, maps)
+}
+
+type LoadRecordRequest struct {
+	MapName    string `json:"map_name" binding:"required"`
+	Difficulty string `json:"difficulty" binding:"required"`
+}
+
+func LoadRecord(c *gin.Context) {
+	var req LoadRecordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	database := db.GetDB()
+
+	// 確認目前總分已達 10000
+	var completedScore int64
+	var loadedScore int64
+	database.Model(&model.MapRecord{}).Where("status = 2").Select("COALESCE(SUM(points), 0)").Scan(&completedScore)
+	database.Model(&model.MapRecord{}).Where("status = 3").Select("COALESCE(SUM(points), 0)").Scan(&loadedScore)
+	if completedScore+loadedScore < 10000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "total score has not reached 10000 yet"})
+		return
+	}
+
+	var record model.MapRecord
+	if err := database.Where("map_name = ? AND difficulty = ? AND status = 2", req.MapName, req.Difficulty).First(&record).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "completed record not found"})
+		return
+	}
+
+	record.Status = 3
+	if err := database.Save(&record).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load record"})
+		return
+	}
+
+	UpdateGlobalSummary()
+	triggerSnapshot(record.Runner, record.MapName, -record.Points)
+
+	c.JSON(http.StatusOK, record)
+}
+
+
 func triggerSnapshot(runner string, map_name string, map_points int) {
 	var summary model.Summary
 	// 取得剛才 UpdateGlobalSummary 更新後的最新資料

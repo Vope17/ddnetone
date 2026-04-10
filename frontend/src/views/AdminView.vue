@@ -92,6 +92,21 @@ const undoRecord = async (record) => {
   }
 };
 
+const unloadRecord = async (record) => {
+  if (!confirm(`確定要將 [${record.map_name}] 從加載狀態還原為已完成？`)) return;
+  actionStatus.value[record.id] = 'loading';
+  try {
+    await axios.put(`/api/admin/records/${record.id}/unload`, {}, {
+      headers: { 'X-Admin-Key': adminKey.value }
+    });
+    const idx = records.value.findIndex(r => r.id === record.id);
+    if (idx !== -1) records.value[idx] = { ...records.value[idx], status: 2 };
+    actionStatus.value[record.id] = 'done';
+  } catch {
+    actionStatus.value[record.id] = 'error';
+  }
+};
+
 const createMap = async () => {
   mapStatus.value = 'loading';
   mapError.value = '';
@@ -192,9 +207,9 @@ const filtered = computed(() => {
               <template v-for="r in filtered" :key="r.id">
                 <tr v-if="editingId !== r.id"
                   class="border-b border-white/5 hover:bg-white/2 transition-colors"
-                  :class="{ 'opacity-50': actionStatus[r.id] === 'loading' }">
+                  :class="{ 'opacity-50': actionStatus[r.id] === 'loading', 'bg-amber-900/10': r.status === 3 }">
                   <td class="py-1.5 px-2 text-gray-600">{{ r.id }}</td>
-                  <td class="py-1.5 px-2 text-white max-w-[120px] truncate">{{ r.map_name }}</td>
+                  <td class="py-1.5 px-2 max-w-[120px] truncate" :class="r.status === 3 ? 'text-amber-300' : 'text-white'">{{ r.map_name }}</td>
                   <td class="py-1.5 px-2 text-gray-400 hidden sm:table-cell">{{ r.difficulty }}</td>
                   <td class="py-1.5 px-2 text-cyan-400">{{ r.runner }}</td>
                   <td class="py-1.5 px-2 text-green-400 hidden md:table-cell">{{ r.score }}</td>
@@ -203,13 +218,18 @@ const filtered = computed(() => {
                     {{ r.finish_time ? new Date(r.finish_time).toLocaleDateString('sv-SE') : '-' }}
                   </td>
                   <td class="py-1.5 px-2 text-right whitespace-nowrap">
-                    <button @click="startEdit(r)"
+                    <button v-if="r.status !== 3" @click="startEdit(r)"
                       class="text-violet-400 hover:text-violet-200 px-2 py-0.5 border border-violet-400/20 hover:border-violet-400/60 transition-colors mr-1">
                       EDIT
                     </button>
-                    <button @click="undoRecord(r)"
+                    <button v-if="r.status !== 3" @click="undoRecord(r)"
                       class="text-red-400 hover:text-red-200 px-2 py-0.5 border border-red-400/20 hover:border-red-400/60 transition-colors">
                       UNDO
+                    </button>
+                    <span v-if="r.status === 3" class="text-amber-500/60 font-mono text-[10px] mr-1">LOADED</span>
+                    <button v-if="r.status === 3" @click="unloadRecord(r)"
+                      class="text-amber-400 hover:text-amber-200 px-2 py-0.5 border border-amber-400/20 hover:border-amber-400/60 transition-colors">
+                      UNLOAD
                     </button>
                   </td>
                 </tr>
