@@ -10,12 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetLeaderboard(c *gin.Context) {
-	// 從 map_records 聚合，在 Go 層解析多人 runner
+// buildLeaderboard computes the leaderboard from DB (shared by API and SSE).
+func buildLeaderboard() []model.PlayerStats {
 	var records []model.MapRecord
 	if err := db.GetDB().Where("status = 2 AND score > 0").Find(&records).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "無法取得記錄"})
-		return
+		return []model.PlayerStats{}
 	}
 
 	scoreMap := make(map[string]float64)
@@ -27,7 +26,6 @@ func GetLeaderboard(c *gin.Context) {
 		}
 	}
 
-	// 取得所有 Player 用於 role 查找
 	var players []model.Player
 	db.GetDB().Find(&players)
 	roleMap := make(map[string]string)
@@ -52,7 +50,11 @@ func GetLeaderboard(c *gin.Context) {
 		return result[i].ScoreContribution > result[j].ScoreContribution
 	})
 
-	c.JSON(http.StatusOK, result)
+	return result
+}
+
+func GetLeaderboard(c *gin.Context) {
+	c.JSON(http.StatusOK, buildLeaderboard())
 }
 
 func GetPlayerOptions(c *gin.Context) {

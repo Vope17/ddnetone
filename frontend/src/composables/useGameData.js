@@ -12,11 +12,9 @@ export function useGameData(toastRef = null) {
   let prevCompletedMaps = -1;
   let prevScore = -1;
   let prevLoadedMaps = -1;
-  // const latestSubmission = ref(null);
 
   // 模擬數據
   const mockData = () => {
-    // --- 模擬數據 (如果API沒通) ---
     summary.value = { current_score: 12450, target_score: 32450, completed_maps: 42 };
     players.value = [
       { id: 1, name: 'KAI_ZEN', role: 'DUELIST', score_contrib: 5200, map_count: 12 },
@@ -36,9 +34,50 @@ export function useGameData(toastRef = null) {
     growthData.value = Array.from({ length: 12 }, (_, i) => ({ hours: i * 2, points: 1000 + Math.random() * 5000 + (i * 1000) }));
   };
 
+  // 處理從 SSE 或 REST 拿到的資料更新
+  const applyUpdate = (data) => {
+    summary.value = data.summary;
+    players.value = data.leaderboard;
+    maps.value = data.maps;
+    growthData.value = data.growth;
+    milestonesData.value = data.milestones;
+    scoreMilestonesData.value = data.score_milestones;
+
+    // Toast 通知邏輯
+    const newMaps = data.summary.completed_maps;
+    const newScore = data.summary.current_score;
+    const newLoadedMaps = data.summary.loaded_maps ?? 0;
+
+    if (prevCompletedMaps >= 0 && newMaps > prevCompletedMaps && toastRef?.value) {
+      const latestGrowth = data.growth[data.growth.length - 1];
+      toastRef.value.addToast({
+        type: 'success',
+        title: latestGrowth?.map_name
+          ? `${latestGrowth.map_name}`
+          : `MAPS: ${newMaps}`,
+        subtitle: latestGrowth?.runner
+          ? `BY ${latestGrowth.runner}  +${latestGrowth.map_points ?? '?'} PTS`
+          : `+${newScore - prevScore} PTS`
+      });
+    }
+    if (prevLoadedMaps >= 0 && newLoadedMaps > prevLoadedMaps && toastRef?.value) {
+      const latestGrowth = data.growth[data.growth.length - 1];
+      toastRef.value.addToast({
+        type: 'info',
+        title: latestGrowth?.map_name ? `LOADED: ${latestGrowth.map_name}` : 'MAP LOADED',
+        subtitle: latestGrowth?.map_points != null
+          ? `${Math.abs(latestGrowth.map_points)} PTS DEDUCTED`
+          : `SCORE: ${newScore}`
+      });
+    }
+    prevCompletedMaps = newMaps;
+    prevScore = newScore;
+    prevLoadedMaps = newLoadedMaps;
+  };
+
+  // Fallback: 用 REST API 一次取全部資料
   const fetchData = async () => {
     try {
-      // 為了避免畫面閃爍，這裡通常不需要清空數據，直接覆蓋即可
       const [sumRes, playRes, mapRes, growthRes, milestonesRes, scoreMilestonesRes] = await Promise.all([
         axios.get(`/api/summary`),
         axios.get(`/api/leaderboard`),
@@ -48,65 +87,63 @@ export function useGameData(toastRef = null) {
         axios.get(`/api/score-milestones`)
       ]);
 
-      summary.value = sumRes.data;
-      players.value = playRes.data;
-      maps.value = mapRes.data;
-      growthData.value = growthRes.data;
-      milestonesData.value = milestonesRes.data;
-      scoreMilestonesData.value = scoreMilestonesRes.data;
-
-      // 偵測新完成地圖，觸發 Toast
-      const newMaps = sumRes.data.completed_maps;
-      const newScore = sumRes.data.current_score;
-      const newLoadedMaps = sumRes.data.loaded_maps ?? 0;
-      if (prevCompletedMaps >= 0 && newMaps > prevCompletedMaps && toastRef?.value) {
-        const latestGrowth = growthRes.data[growthRes.data.length - 1];
-        toastRef.value.addToast({
-          type: 'success',
-          title: latestGrowth?.map_name
-            ? `${latestGrowth.map_name}`
-            : `MAPS: ${newMaps}`,
-          subtitle: latestGrowth?.runner
-            ? `BY ${latestGrowth.runner}  +${latestGrowth.map_points ?? '?'} PTS`
-            : `+${newScore - prevScore} PTS`
-        });
-      }
-      if (prevLoadedMaps >= 0 && newLoadedMaps > prevLoadedMaps && toastRef?.value) {
-        const latestGrowth = growthRes.data[growthRes.data.length - 1];
-        toastRef.value.addToast({
-          type: 'info',
-          title: latestGrowth?.map_name ? `LOADED: ${latestGrowth.map_name}` : 'MAP LOADED',
-          subtitle: latestGrowth?.map_points != null
-            ? `${Math.abs(latestGrowth.map_points)} PTS DEDUCTED`
-            : `SCORE: ${newScore}`
-        });
-      }
-      prevCompletedMaps = newMaps;
-      prevScore = newScore;
-      prevLoadedMaps = newLoadedMaps;
-
-      // 可以在這裡 console.log("Auto Refreshed") 確認有沒有在跑
+      applyUpdate({
+        summary: sumRes.data,
+        leaderboard: playRes.data,
+        maps: mapRes.data,
+        growth: growthRes.data,
+        milestones: milestonesRes.data,
+        score_milestones: scoreMilestonesRes.data
+      });
     } catch (e) {
       console.warn("API 連線失敗，保持現有數據或切換至展示模式");
-      // 注意：自動更新失敗時，通常不建議切換 mockData，保留舊數據體驗較好
       if (players.value.length === 0) mockData();
     }
   };
-  // 定義計時器變數
-  let pollingTimer = null;
+
+  // SSE 連線
+  let eventSource = null;
+  let reconnectTimer = null;
+
+  const connectSSE = () => {
+    if (eventSource) {
+      eventSource.close();
+    }
+
+    eventSource = new EventSource('/api/sse');
+
+    eventSource.addEventListener('update', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        applyUpdate(data);
+      } catch (err) {
+        console.warn('SSE parse error:', err);
+      }
+    });
+
+    eventSource.onerror = () => {
+      // EventSource 會自動重連，但若完全斷線則 fallback 到 REST
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.warn('SSE 連線關閉，將在 5 秒後重試');
+        eventSource.close();
+        eventSource = null;
+        reconnectTimer = setTimeout(connectSSE, 5000);
+      }
+    };
+  };
 
   onMounted(() => {
-    // 1. 畫面載入時先抓一次
-    fetchData();
-
-    // 2. 設定輪詢：每 5000 毫秒 (5秒) 自動抓取一次
-    // 您可以根據需求調整時間，例如 3000 (3秒) 或 10000 (10秒)
-    pollingTimer = setInterval(fetchData, 5000);
+    connectSSE();
   });
 
-  // 3. 當組件卸載時，務必清除計時器 (雖然 App.vue 通常不會卸載，但這是好習慣)
   onUnmounted(() => {
-    if (pollingTimer) clearInterval(pollingTimer);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+    }
   });
 
   const progressPercent = computed(() => {
@@ -115,13 +152,11 @@ export function useGameData(toastRef = null) {
   });
 
   // Chart Data 配置
-
   const chartData = computed(() => {
     return {
       labels: growthData.value.map(d => {
-        if (!d.timestamp) return ''; // 防止舊資料沒時間
+        if (!d.timestamp) return '';
         const date = new Date(d.timestamp);
-        // 回傳格式：1/29
         return `${date.getMonth() + 1}/${date.getDate()}`;
       }),
       datasets: [
@@ -141,7 +176,6 @@ export function useGameData(toastRef = null) {
           pointHoverBackgroundColor: '#fff',
           pointHoverRadius: 6,
           pointRadius: 3,
-
           fill: true,
           tension: 0.3,
           data: growthData.value.map(d => d.points),

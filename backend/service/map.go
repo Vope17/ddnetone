@@ -65,6 +65,7 @@ func CreateRecord(c *gin.Context) {
 		// 呼叫 Growth Snapshot (需先取得最新 Summary 數據)
 		triggerSnapshot(existingRecord.Runner, existingRecord.MapName, existingRecord.Score)
 
+		BroadcastUpdate()
 		c.JSON(http.StatusOK, existingRecord)
 
 	} else {
@@ -77,6 +78,7 @@ func CreateRecord(c *gin.Context) {
 		UpdateGlobalSummary()
 		triggerSnapshot(newRecord.Runner, newRecord.MapName, newRecord.Score)
 
+		BroadcastUpdate()
 		c.JSON(http.StatusCreated, newRecord)
 	}
 }
@@ -101,16 +103,6 @@ func LoadRecord(c *gin.Context) {
 
 	database := db.GetDB()
 
-	// 確認目前總分已達 10000
-	var completedScore int64
-	var loadedScore int64
-	database.Model(&model.MapRecord{}).Where("status = 2").Select("COALESCE(SUM(points), 0)").Scan(&completedScore)
-	database.Model(&model.MapRecord{}).Where("status = 3").Select("COALESCE(SUM(points), 0)").Scan(&loadedScore)
-	if completedScore+loadedScore < 10000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "total score has not reached 10000 yet"})
-		return
-	}
-
 	var record model.MapRecord
 	if err := database.Where("map_name = ? AND difficulty = ? AND status = 2", req.MapName, req.Difficulty).First(&record).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "completed record not found"})
@@ -126,6 +118,7 @@ func LoadRecord(c *gin.Context) {
 	UpdateGlobalSummary()
 	triggerSnapshot(record.Runner, record.MapName, -record.Points)
 
+	BroadcastUpdate()
 	c.JSON(http.StatusOK, record)
 }
 

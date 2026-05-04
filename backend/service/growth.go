@@ -55,10 +55,10 @@ type MilestoneResult struct {
 	Maps      int    `json:"maps"`
 }
 
-func GetMilestones(c *gin.Context) {
+// buildMilestones computes map milestones (shared by API and SSE).
+func buildMilestones() []MilestoneResult {
 	const TARGET_MAPS = 2403
 
-	// 單次查詢，按 maps asc 排序後線性掃描，避免 N 次查詢
 	var records []model.GrowthData
 	db.GetDB().Order("maps asc, id asc").Find(&records)
 
@@ -77,14 +77,17 @@ func GetMilestones(c *gin.Context) {
 			break
 		}
 	}
-
-	c.JSON(http.StatusOK, results)
+	return results
 }
 
-func GetScoreMilestones(c *gin.Context) {
+func GetMilestones(c *gin.Context) {
+	c.JSON(http.StatusOK, buildMilestones())
+}
+
+// buildScoreMilestones computes score milestones (shared by API and SSE).
+func buildScoreMilestones() []MilestoneResult {
 	const SCORE_STEP = 1000
 
-	// 單次查詢，按 points asc 排序後線性掃描，避免 N 次查詢
 	var records []model.GrowthData
 	db.GetDB().Order("points asc, id asc").Find(&records)
 
@@ -100,8 +103,11 @@ func GetScoreMilestones(c *gin.Context) {
 			target += SCORE_STEP
 		}
 	}
+	return results
+}
 
-	c.JSON(http.StatusOK, results)
+func GetScoreMilestones(c *gin.Context) {
+	c.JSON(http.StatusOK, buildScoreMilestones())
 }
 
 func RecordGrowthSnapshot(score int, maps int, runner string, map_name string, map_points int) {

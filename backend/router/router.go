@@ -22,6 +22,7 @@ func InitRouter() *gin.Engine {
 
 	api := r.Group("/api")
 	{
+		api.GET("/sse", service.HandleSSE)
 
 		api.GET("/summary", service.GetSummary)
 

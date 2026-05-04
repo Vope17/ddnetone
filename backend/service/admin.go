@@ -63,6 +63,7 @@ func EditRecord(c *gin.Context) {
 		return
 	}
 
+	BroadcastUpdate()
 	c.JSON(http.StatusOK, record)
 }
 
@@ -99,6 +100,7 @@ func UndoRecord(c *gin.Context) {
 	}
 
 	UpdateGlobalSummary()
+	BroadcastUpdate()
 	c.JSON(http.StatusOK, record)
 }
 
@@ -137,6 +139,7 @@ func UnloadRecord(c *gin.Context) {
 	}
 
 	UpdateGlobalSummary()
+	BroadcastUpdate()
 	c.JSON(http.StatusOK, record)
 }
 
