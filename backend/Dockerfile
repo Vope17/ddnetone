@@ -3,9 +3,6 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# 安裝 git (如果依賴庫需要)
-RUN apk add --no-cache git
-
 # 利用 Docker Cache 機制，先複製 mod 檔
 COPY go.mod go.sum ./
 RUN go mod download
