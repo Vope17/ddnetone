@@ -83,46 +83,6 @@ func CreateRecord(c *gin.Context) {
 	}
 }
 
-func GetLoadOptions(c *gin.Context) {
-	var maps []model.MapRecord
-	db.GetDB().Where("status = 2").Order("map_name asc").Find(&maps)
-	c.JSON(http.StatusOK, maps)
-}
-
-type LoadRecordRequest struct {
-	MapName    string `json:"map_name" binding:"required"`
-	Difficulty string `json:"difficulty" binding:"required"`
-}
-
-func LoadRecord(c *gin.Context) {
-	var req LoadRecordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	database := db.GetDB()
-
-	var record model.MapRecord
-	if err := database.Where("map_name = ? AND difficulty = ? AND status = 2", req.MapName, req.Difficulty).First(&record).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "completed record not found"})
-		return
-	}
-
-	record.Status = 3
-	if err := database.Save(&record).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load record"})
-		return
-	}
-
-	UpdateGlobalSummary()
-	triggerSnapshot(record.Runner, record.MapName, -record.Points)
-
-	BroadcastUpdate()
-	c.JSON(http.StatusOK, record)
-}
-
-
 func triggerSnapshot(runner string, map_name string, map_points int) {
 	var summary model.Summary
 	// 取得剛才 UpdateGlobalSummary 更新後的最新資料

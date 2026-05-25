@@ -12,11 +12,11 @@ const props = defineProps({
 });
 
 const manualLabels = [
-  { score: 0, text: '2024/09/30 19:30 開始傳奇的一刻' },
-  { score: 1000, text: '2024/10/01 通不到6小時破千 666' },
+  { score: 0, text: '2024/09/30 19:30 The legend begins' },
+  { score: 1000, text: '2024/10/01 Broke 1000 in under 6h' },
   { score: 2000, text: '2024/10/02 01:32' },
   { score: 2500, text: '2024/10/02 23:25' },
-  { score: 3975, text: '2026/01/23 22:20 假裝破4000分 fake news' },
+  { score: 3975, text: '2026/01/23 22:20 Fake 4000 pts - fake news' },
   { score: 4000, text: '2026/01/24 00:20' },
   { score: 5000, text: '2026/01/31 21:00' },
 ];

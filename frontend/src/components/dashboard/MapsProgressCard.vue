@@ -14,7 +14,7 @@ const TARGET_MAPS = 2403;
 
 // 設定地圖里程碑
 const manualMapLabels = ref([
-  { count: 0, text: '2024/09/30 19:30 開始傳奇的一刻' },
+  { count: 0, text: '2024/09/30 19:30 The legend begins' },
   { count: 100, text: '2024/10/01' },
   { count: 300, text: '2024/10/06' },
   { count: 400, text: '2026/01/24' },

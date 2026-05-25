@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useGameData } from './composables/useGameData';
 import NavBar from './views/NavBar.vue';
 import DashboardView from './views/DashboardView.vue';
@@ -12,6 +12,31 @@ import ToastNotification from './components/ToastNotification.vue';
 const activeView = ref('dashboard');
 const toastRef = ref(null);
 const { summary, players, maps, progressPercent, chartData, fetchData, growthData, milestonesData, scoreMilestonesData } = useGameData(toastRef);
+
+const viewComponents = {
+  dashboard: DashboardView,
+  maps: RecordsView,
+  submission: SubmissionView,
+  stats: StatsView,
+  admin: AdminView,
+};
+
+// 每個 view 所需的 props（響應式）
+const viewProps = computed(() => ({
+  dashboard: {
+    summary: summary.value,
+    players: players.value,
+    progressPercent: progressPercent.value,
+    chartData: chartData.value,
+    growthData: growthData.value,
+    milestonesData: milestonesData.value,
+    scoreMilestonesData: scoreMilestonesData.value,
+  },
+  maps: { maps: maps.value },
+  submission: {},
+  stats: { growthData: growthData.value, summary: summary.value, maps: maps.value },
+  admin: {},
+}));
 </script>
 
 <template>
@@ -37,19 +62,13 @@ const { summary, players, maps, progressPercent, chartData, fetchData, growthDat
     <main class="relative z-10 flex-1 flex flex-col overflow-hidden custom-scrollbar px-3 pb-6 pt-6">
 
       <transition name="fade-slide" mode="out-in">
-        <DashboardView v-if="activeView === 'dashboard'" :summary="summary" :players="players"
-          :progressPercent="progressPercent" :chartData="chartData" :growth-data="growthData" :milestones-data="milestonesData" :score-milestones-data="scoreMilestonesData" />
-
-        <RecordsView v-else-if="activeView === 'maps'" :maps="maps" @record-deleted="fetchData" />
-
-        <SubmissionView v-else-if="activeView === 'submission'" />
-
-        <StatsView v-else-if="activeView === 'stats'"
-          :growth-data="growthData" :summary="summary" :maps="maps" />
-
-        <AdminView v-else-if="activeView === 'admin'" />
-
-        <!-- <MessageBoardView v-else-if="activeView === 'board'" /> -->
+        <keep-alive>
+          <component
+            :is="viewComponents[activeView]"
+            v-bind="viewProps[activeView]"
+            @record-deleted="fetchData"
+          />
+        </keep-alive>
       </transition>
     </main>
 

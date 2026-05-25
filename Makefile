@@ -1,5 +1,6 @@
 all:
 	docker compose up -d --build
+	# 若有 VPN 需改用: docker compose build --network host && docker compose up -d
 
 # --- 變數設定 (方便維護) ---
 GCP_REGION := us-west1
@@ -15,7 +16,7 @@ GIT_HASH := $(shell git rev-parse --short HEAD)
 VERSION  ?= $(GIT_HASH)
 
 build:
-	docker compose build
+	docker compose build --network host
 # --- Frontend ---
 push_f:
 	@echo "正在構建並推送 Frontend 版本: $(VERSION)"

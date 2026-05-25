@@ -13,7 +13,7 @@ const fetchMessages = async () => {
     const res = await axios.get('/api/messages');
     messages.value = res.data;
   } catch (e) {
-    console.error("無法取得留言", e);
+    console.error("Failed to fetch messages", e);
   }
 };
 
@@ -22,10 +22,10 @@ const postMessage = async () => {
   isSubmitting.value = true;
   try {
     await axios.post('/api/messages', newMessage.value);
-    newMessage.value.content = ''; // 清空內容但保留使用者名稱
+    newMessage.value.content = ''; // clear content, keep username
     await fetchMessages();
   } catch (e) {
-    alert("發送失敗");
+    alert("Failed to send message");
   } finally {
     isSubmitting.value = false;
   }
@@ -33,7 +33,7 @@ const postMessage = async () => {
 
 const formatTime = (timeStr) => {
   const date = new Date(timeStr);
-  return date.toLocaleString('zh-TW', { hour12: false });
+  return date.toLocaleString('sv-SE', { hour12: false });
 };
 
 onMounted(fetchMessages);

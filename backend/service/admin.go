@@ -21,10 +21,10 @@ func AdminAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-// GetAdminRecords 取得所有已完成及已加載記錄供管理
+// GetAdminRecords 取得所有已完成記錄供管理
 func GetAdminRecords(c *gin.Context) {
 	var records []model.MapRecord
-	db.GetDB().Where("status IN (2, 3)").Order("finish_time desc").Find(&records)
+	db.GetDB().Where("status = 2").Order("finish_time desc").Find(&records)
 	c.JSON(http.StatusOK, records)
 }
 
@@ -109,38 +109,6 @@ type CreateAdminMapRequest struct {
 	Difficulty string `json:"difficulty" binding:"required"`
 	Points     int    `json:"points"`
 	Stars      int    `json:"stars"`
-}
-
-// UnloadRecord 將已加載的記錄(status=3)還原為已完成(status=2)
-func UnloadRecord(c *gin.Context) {
-	id := c.Param("id")
-	var record model.MapRecord
-	if err := db.GetDB().First(&record, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "record not found"})
-		return
-	}
-
-	if record.Status != 3 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "record is not loaded"})
-		return
-	}
-
-	database := db.GetDB()
-
-	// 刪除對應的 growth_data 快照
-	database.Where("map_name = ? AND runner = ?", record.MapName, record.Runner).
-		Delete(&model.GrowthData{})
-
-	record.Status = 2
-
-	if err := database.Save(&record).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unload record"})
-		return
-	}
-
-	UpdateGlobalSummary()
-	BroadcastUpdate()
-	c.JSON(http.StatusOK, record)
 }
 
 func CreateAdminMap(c *gin.Context) {
