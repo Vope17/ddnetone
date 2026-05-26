@@ -12,7 +12,6 @@ import { watch } from 'vue';
 const props = defineProps({
   summary: Object,
   players: Array,
-  progressPercent: String,
   chartData: Object,
   growthData: Array,
   milestonesData: Array,
@@ -28,9 +27,9 @@ const props = defineProps({
 
       <CurrentPointsCard :current-score="summary?.current_score" />
 
-      <MapsProgressCard :completed-maps="summary?.completed_maps" :growth-data="growthData" :milestones-data="milestonesData" />
+      <MapsProgressCard :completed-maps="summary?.completed_maps" :target-maps="summary?.target_maps" :growth-data="growthData" :milestones-data="milestonesData" />
 
-      <PointsProgressCard :progress-percent="progressPercent" :target-score="summary?.target_score"
+      <PointsProgressCard :current-score="summary?.current_score" :target-score="summary?.target_score"
         :growth-data="growthData" :score-milestones-data="scoreMilestonesData" />
 
     </div>

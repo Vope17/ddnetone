@@ -1,8 +1,12 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
   completedMaps: {
+    type: Number,
+    default: 0
+  },
+  targetMaps: {
     type: Number,
     default: 0
   },
@@ -10,7 +14,7 @@ const props = defineProps({
   milestonesData: Array // 來自 /api/milestones 的完整歷史里程碑資料
 });
 
-const TARGET_MAPS = 2403;
+const TARGET_MAPS = computed(() => props.targetMaps || 1);
 
 // 設定地圖里程碑
 const manualMapLabels = ref([
@@ -35,7 +39,7 @@ const autoMilestones = computed(() => {
 });
 // 計算百分比
 const mapsPercent = computed(() => {
-  return Math.min((props.completedMaps / TARGET_MAPS) * 100, 100).toFixed(1);
+  return Math.min((props.completedMaps / TARGET_MAPS.value) * 100, 100).toFixed(1);
 });
 
 // 3. 合併手動與自動里程碑，並計算 CSS 位置
@@ -46,13 +50,10 @@ const mapMilestones = computed(() => {
   // 轉換成包含 left 屬性的格式
   return allMilestones.map(item => ({
     ...item,
-    left: (item.count / TARGET_MAPS) * 100 + '%'
+    left: (item.count / TARGET_MAPS.value) * 100 + '%'
   }));
 });
 
-computed(() => {
-
-})
 </script>
 
 <template>

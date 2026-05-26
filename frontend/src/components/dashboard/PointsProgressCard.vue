@@ -2,13 +2,21 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  progressPercent: [String, Number],
+  currentScore: {
+    type: Number,
+    default: 0
+  },
   targetScore: {
     type: Number,
-    default: 10000
+    default: 0
   },
   growthData: Array,
   scoreMilestonesData: Array // 來自 /api/score-milestones 的完整歷史里程碑資料
+});
+
+const progressPercent = computed(() => {
+  const target = props.targetScore || 1;
+  return Math.min((props.currentScore / target) * 100, 100).toFixed(1);
 });
 
 const manualLabels = [
@@ -37,14 +45,12 @@ const autoMilestones = computed(() => {
 
 // 3. 合併並計算位置
 const milestones = computed(() => {
-  const target = props.targetScore || 10000;
+  const target = props.targetScore || 1;
 
-  // 合併手動與自動產生的里程碑
   const allMilestones = [...manualLabels, ...autoMilestones.value];
 
   return allMilestones.map(item => ({
     ...item,
-    // 計算 CSS left 百分比
     left: (item.score / target) * 100 + '%'
   }));
 });
@@ -98,7 +104,7 @@ const milestones = computed(() => {
 
       <div class="flex justify-between mt-8 text-[10px] text-gray-600 font-mono">
         <span>0</span>
-        <span>TARGET: {{ targetScore.toLocaleString() }}</span>
+        <span class="text-gray-500">PROGRESS: {{ currentScore.toLocaleString() }} / {{ targetScore.toLocaleString() }}</span>
       </div>
     </div>
   </div>

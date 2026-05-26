@@ -11,7 +11,7 @@ import ToastNotification from './components/ToastNotification.vue';
 
 const activeView = ref('dashboard');
 const toastRef = ref(null);
-const { summary, players, maps, progressPercent, chartData, fetchData, growthData, milestonesData, scoreMilestonesData } = useGameData(toastRef);
+const { summary, players, maps, chartData, fetchData, growthData, milestonesData, scoreMilestonesData } = useGameData(toastRef);
 
 const viewComponents = {
   dashboard: DashboardView,
@@ -26,7 +26,6 @@ const viewProps = computed(() => ({
   dashboard: {
     summary: summary.value,
     players: players.value,
-    progressPercent: progressPercent.value,
     chartData: chartData.value,
     growthData: growthData.value,
     milestonesData: milestonesData.value,
